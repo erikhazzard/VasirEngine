@@ -201,8 +201,6 @@ class Entity(object):
         if randomize_persona is True:
             self.randomize_persona()
 
-
-
     '''--------------------------------------------------------------------
     
     Class Methods
@@ -215,5 +213,3 @@ class Entity(object):
         value to it'''
         for attribute in self.persona:
             self.persona[attribute] = random.randint(0, 500)
-        
-            
