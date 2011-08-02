@@ -11,6 +11,7 @@ IMPORTS
 
 ============================================================================="""
 import random 
+import Race
 
 """=============================================================================
 
@@ -18,25 +19,76 @@ CLASS DEFINITIONS
 
 ============================================================================="""
 class Entity(object):
+    '''Entity Class
+    -------------------------------------
+    The Entity class controls all the logic for creating and interacting with 
+    entities (characters, creatures, etc.).  When instaniating an Entity object
+    we can pass in persona, name, etc. values OR have the entity automatically
+    generate those attributes for us.  By default, it will automatically 
+    generate values'''
+    #Keep a count of how many entities have been created
+    _entity_created_count = 0
+
+    #=====================================================================
+    #
+    #   Entity Description
+    #
+    #=====================================================================
     def __init__(self, *args, **kwargs):
         '''init
         ---------------------------------
         Create an entity.  Various parameters can be passed in to override
         default attributes.  Init sets up the entity's attributes and
         other initialization processes'''
-        #--------------------------------
+        #=====================================================================
+        #
         #   Entity Description
-        #--------------------------------
+        #
+        #=====================================================================
         #Entity's name
         try:
             self.name = kwargs['name']
         except KeyError:
-            self.name = [random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ') for i in \
-                range(random.randint(2,18))]
-            self.name = ''.join(self.name)
-            self.name = self.name[0] + self.name[1:].lower()
+            self.name = self.generate_name()
+        #=====================================================================
+        #   Characteristics
+        #=====================================================================
+        #
+        #   Characteristics define certain properties of the entity that are 
+        #   more or less not affected by outside influences - attribtues such
+        #   as age, race, gender, skin color, etc.
+        #
         #--------------------------------
+        #Age
+        #
+        #Age is how old the entity is.  While age isn't something that is
+        #   affected by external influences (like personality is), it can 
+        #   affect how other entities perceive this entity.  Age also affects
+        #   the value of certain persona attributes (like in real life, 
+        #   certain people mature with age.  Also like in real life, age does 
+        #   not always critically affect persona - here, age is more or less a
+        #   weight, or a heueristic, for determing persona atrributes)
+        #--------------------------------
+        try:
+            self.age = kwargs['age']
+        except KeyError:
+            self.age = random.randint(0,120)
+
+        #------------------------------
+        #Race
+        #
+        #Race determines which type of entity the entity is - for example,
+        #   elf, human, dwarf, etc.  The race is an object from the Race class,
+        #   so we can specify the possible races and how they affect other
+        #   entites (by modifying the Race class)
+        #--------------------------------
+        try:
+            self.race = kwargs['race']
+        except KeyError:
+            self.race = Race.Race()
+        #=====================================================================
         #   Persona
+        #=====================================================================
         #
         #   The persona is based on five 'personality' traits as observed by
         #   psychologists.  They are Openness, Conscientiousness, Extraversion,
@@ -191,21 +243,33 @@ class Entity(object):
         '''------------------------------
             Set up function calls
             -----------------------------'''
-        #Randomize persona values?
+        #Randomize persona values? If nothing is passed is, then we
+        #   assume we DO want ranomized persona values
         try:
             #randomize_persona can be either True or False
             randomize_persona = kwargs['randomize_persona']
         except KeyError:
             randomize_persona = True
         
+        #If randomize_persona is true, call the class method which
+        #   will randomize persona values
         if randomize_persona is True:
             self.randomize_persona()
 
-    '''--------------------------------------------------------------------
+        #Increase the _entity_created_count value
+        Entity._entity_created_count += 1
+
+
+    '''====================================================================
     
     Class Methods
 
-    -----------------------------------------------------------------------'''
+    ======================================================================='''
+    #=====================================================================
+    #
+    #   randomize_persona
+    #
+    #=====================================================================
     def randomize_persona(self):
         '''randomize_persona(self)
         ---------------------------------
@@ -213,3 +277,18 @@ class Entity(object):
         value to it'''
         for attribute in self.persona:
             self.persona[attribute] = random.randint(0, 500)
+
+    #=====================================================================
+    #
+    #   generate_name
+    #
+    #=====================================================================
+    def generate_name(self):
+        '''generate_name(self)
+        ---------------------------------
+        This method randomly generates a name for the entity'''
+        name = [random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ') for i in \
+            range(random.randint(2,18))]
+        name = ''.join(name)
+        name = name[0] + name[1:].lower()
+        return name
