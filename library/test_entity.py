@@ -23,9 +23,20 @@ class testEntity(unittest.TestCase):
         self.entity = Entity.Entity()
         assert Entity.Entity._entity_created_count > 0
 
+    def test_gender(self):
+        '''Test the entity's gender'''
+        assert self.entity.gender is not None
+
     def test_init(self):
         '''Test that init creates an entity object'''
         assert self.entity.persona is not None
+        '''Test the entity's gender'''
+        assert self.entity.gender is not None
+        assert self.entity.id is not None
+        #Make sure it has a semi valid ID
+        assert len(self.entity.id) > 10
+        #Make sure this entity ID is in the list of entities
+        assert self.entity.id in Entity.Entity._entity_objects
 
     def test_name(self):
         '''Test that the name function generates a valid name'''

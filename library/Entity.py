@@ -28,7 +28,15 @@ class Entity(object):
     generate values'''
     #Keep a count of how many entities have been created
     _entity_created_count = 0
+    #_entity_objects will be a dict of all created entity objects, represented
+    #   by their ID and the value being the object itself
+    _entity_objects = {}
 
+    #Store gender values
+    GENDER = (
+        (0, 'Male'),
+        (1, 'Female'),
+    )
     #=====================================================================
     #
     #   Entity Description
@@ -40,6 +48,20 @@ class Entity(object):
         Create an entity.  Various parameters can be passed in to override
         default attributes.  Init sets up the entity's attributes and
         other initialization processes'''
+        #=====================================================================
+        #   Entity ID
+        #=====================================================================
+        #Generate a random ID.  TODO: Use hash?
+        self.id = 'entity_%s_%s' % (
+            #First parameter is the current count of how many entityies have 
+            #   been created
+            Entity._entity_created_count,
+            #Second parameters is a more or less random string
+            ''.join([random.choice(
+            'abcdefghijklmnopqrstuvwxyz0123456789'
+            ) for i in \
+            range(18)]))
+    
         #=====================================================================
         #
         #   Entity Description
@@ -86,6 +108,21 @@ class Entity(object):
             self.race = kwargs['race']
         except KeyError:
             self.race = Race.Race()
+
+        #------------------------------
+        #Gender
+        #
+        #Specifies if the entity is male or female.  Gender can affect how
+        #   other entities interact with this entity.  Procreation is also
+        #   a desire to take into consideration
+        #--------------------------------
+        try:
+            self.gender = kwargs['gender']
+        except KeyError:
+            #Pick a gender at random
+            self.gender = Entity.GENDER[
+                random.randint(0, 1)]
+
         #=====================================================================
         #   Persona
         #=====================================================================
@@ -256,8 +293,38 @@ class Entity(object):
         if randomize_persona is True:
             self.randomize_persona()
 
+        #=====================================================================
+        #   Entity's Network
+        #=====================================================================
+        #
+        #   The entity's NETWORK consists of other entities that this entity
+        #   has knowledge of or has some sort of connection with.  Entities
+        #   can be known through their connections with other entities (i.e.,
+        #   six degrees of separation).  
+        #
+        #   The data structure will be such that the key will be some entity
+        #   object and the value will be information about the relationship
+        #
+        #   e.g. { 'id': { 'entity': <obj>, 'attitude': <int> } }
+        #--------------------------------
+        #TODO: Figure out what kind of variables to use
+        self.network = {}
+        #Example:
+        #   self.network = {
+        #       'entity_0_zxc42': {
+        #           'entity': Entity._entity_objects['entity_0_zxc42'],
+        #           'attitude': 129,
+        #       }
+        #   }
+
+        #=====================================================================
+        #   Finalize Entity
+        #=====================================================================
         #Increase the _entity_created_count value
         Entity._entity_created_count += 1
+
+        #Add this entity to the list of entities created
+        Entity._entity_objects[self.id] = self
 
 
     '''====================================================================
@@ -265,6 +332,39 @@ class Entity(object):
     Class Methods
 
     ======================================================================='''
+    #=====================================================================
+    #
+    #   Built-in overrides
+    #   ---------------------------------
+    #   Functions that overwrite or extend built in behavior
+    #
+    #=====================================================================
+    def __repr__(self):
+        return '''
+ID: %s
+Name: %s
+        ''' % (
+        self.get_id(),
+        self.get_name(),
+        )
+    #=====================================================================
+    #
+    #   getter functions
+    #   ---------------------------------
+    #   Functions whose purpose is to get various attributes
+    #
+    #=====================================================================
+    def get_id(self):
+        '''get_id(self)
+        ---------------------------------
+        Returns the ID of the entity'''
+        return self.id
+    def get_name(self):
+        '''get_name(self)
+        ---------------------------------
+        Returns the name of the entity'''
+        return self.name
+    
     #=====================================================================
     #
     #   randomize_persona
