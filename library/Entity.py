@@ -343,9 +343,11 @@ class Entity(object):
         return '''
 ID: %s
 Name: %s
+Persona: %s
         ''' % (
         self.get_id(),
         self.get_name(),
+        self.persona,
         )
     #=====================================================================
     #
