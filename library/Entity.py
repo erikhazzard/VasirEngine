@@ -303,8 +303,8 @@ class Entity(object):
         #   have a sort of memory.  Certain events may affect personality 
         #   attributes or relationships with other entities.  
         #   
-        #   There is an Event class which events derive from, and instances of
-        #   the Event class are stored in a list here
+        #   There is an Storeme (event) class which events derive from, and instances of
+        #   the Storeme class are stored in a list here
         #
         #--------------------------------
         self.history = []
