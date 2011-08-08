@@ -37,6 +37,9 @@ class testEntity(unittest.TestCase):
         assert len(self.entity.id) > 10
         #Make sure this entity ID is in the list of entities
         assert self.entity.id in Entity.Entity._entity_objects
+        #Make sure history and network exists
+        assert self.entity.history is not None
+        assert self.entity.network is not None
 
     def test_name(self):
         '''Test that the name function generates a valid name'''

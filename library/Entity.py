@@ -294,6 +294,22 @@ class Entity(object):
             self.randomize_persona()
 
         #=====================================================================
+        #
+        #   History (Memory / events that have occured to entity)
+        #
+        #=====================================================================
+        #
+        #   The entity must keep track of all events it has experienced, i.e.
+        #   have a sort of memory.  Certain events may affect personality 
+        #   attributes or relationships with other entities.  
+        #   
+        #   There is an Event class which events derive from, and instances of
+        #   the Event class are stored in a list here
+        #
+        #--------------------------------
+        self.history = []
+
+        #=====================================================================
         #   Entity's Network
         #=====================================================================
         #
@@ -309,6 +325,7 @@ class Entity(object):
         #--------------------------------
         #TODO: Figure out what kind of variables to use
         self.network = {}
+
         #Example:
         #   self.network = {
         #       'entity_0_zxc42': {
