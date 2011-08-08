@@ -10,7 +10,11 @@
 IMPORTS
 
 ============================================================================="""
+#Standard python imports
 import random 
+import math
+
+#Other imports
 import Race
 
 """=============================================================================
@@ -37,6 +41,8 @@ class Entity(object):
         (0, 'Male'),
         (1, 'Female'),
     )
+    MAX_PERSONA_ATTRIBUTE_VALUE = 500
+    DEFAULT_PERSONA_ATTRIBUTE_VALUE = 100
     #=====================================================================
     #
     #   Entity Description
@@ -145,7 +151,7 @@ class Entity(object):
         try:
             self.DEFAULT_ATTRIBUTE_VALUE = kwargs['DEFAULT_ATTRIBUTE_VALUE']
         except KeyError:
-            self.DEFAULT_ATTRIBUTE_VALUE = 100
+            self.DEFAULT_ATTRIBUTE_VALUE = Entity.DEFAULT_PERSONA_ATTRIBUTE_VALUE 
 
         #--------------------------------
         #
@@ -383,19 +389,105 @@ Persona: %s
         ---------------------------------
         Returns the name of the entity'''
         return self.name
-    
+
     #=====================================================================
     #
-    #   randomize_persona
+    #   print persona graph
     #
     #=====================================================================
-    def randomize_persona(self):
-        '''randomize_persona(self)
+    def visualize_persona(self, other_entity=None):
+        '''visual_persona(self, other_entity)
         ---------------------------------
-        This method goes through each persona attribute and assigns a random
-        value to it'''
-        for attribute in self.persona:
-            self.persona[attribute] = random.randint(0, 500)
+        This function will visualize the persona of this entity.  Right
+        now, we'll just print an ASCII bar graph
+        
+        If other entity_entity is passed in, this will print a scattor plot
+        with both entity values'''
+
+        #--------------------------------
+        #Print bar graph of self persona
+        #--------------------------------
+        if other_entity is None:
+            #Store empty attribute list string (for now, will be filled in on
+            #   first loop iteration then printed)
+            attr_list = '   '
+            #Loop through a range of numbers from 0 to the max attribute value
+            #   in steps of 100
+            for i in range(int(
+                math.ceil(Entity.MAX_PERSONA_ATTRIBUTE_VALUE / 100.0))+1):
+                #First thing to print is the value of the x axis
+                cur_line_string = '%s: ' % (i)
+                #Loop through each object in the entity's persona
+                for j in self.persona:
+                    #On first loop only, print the current attribute
+                    if i == 0:
+                        attr_list += '%s\t' % (j[0:3])
+
+                    if self.persona[j] == i*100 \
+                        or (self.persona[j] > i*100 \
+                        and self.persona[j] < (i+1)*100):
+                        cur_line_string += 'X  \t'
+                    else:
+                        cur_line_string += '-  \t'
+                if i == 0:
+                    #On first iteration, print attribute list
+                    print attr_list
+                print cur_line_string
+
+        #--------------------------------
+        #Print scattor plot with other entity
+        #--------------------------------
+        else:
+            #Text that will display the x axis during the first iteration
+            x_axis_text = ''
+
+            STEP = 100.0
+            AXIS_LENGTH = int(
+                math.ceil(Entity.MAX_PERSONA_ATTRIBUTE_VALUE / STEP)+1)
+
+            #Get persona list that both entities share
+            attribute_list = []
+            for i in self.persona:
+                if i in other_entity.persona:
+                    attribute_list.append(i)
+            #Loop through a range of numbers from 0 to the max attribute value
+            #   in steps of 100
+            for i in range(AXIS_LENGTH):
+                #First thing to print is the value of the x axis
+                cur_line_string = '%s:\t' % (i)
+                #Now do the X axis
+                for j in range(AXIS_LENGTH):
+                    #On first loop only, print the current attribute
+                    if i == 0:
+                        x_axis_text += '%s    \t' % (j)
+                    #Keep track of if we've found a property in this x,y coord
+                    found_prop = False
+                    #Loop through attribute list and see which attribtues
+                    #   need to be plotted
+                    for attr in attribute_list:
+                        if (self.persona[attr] == j*STEP \
+                                or (self.persona[attr] > j*STEP\
+                                and self.persona[attr] < (j+1)*STEP)) \
+                            and ((other_entity.persona[attr] == i*STEP \
+                                or (other_entity.persona[attr] > i*STEP \
+                                and other_entity.persona[attr] < (i+1)*STEP))):
+                                #See if we've already found something for this 'cell'
+                                if found_prop is False:
+                                    #We found something
+                                    found_prop = True
+                                    #Print it
+                                    cur_line_string += '%s' % (attr[0:2])
+                                else:
+                                    cur_line_string += '|%s' % (attr[0])
+                    if found_prop is False:
+                        #Add a space if nothing was found
+                        cur_line_string += '     \t'
+                    else:
+                        #Add nothing if something was found
+                        cur_line_string += '\t' 
+                if i == 0:
+                    print x_axis_text
+                print cur_line_string
 
     #=====================================================================
     #
@@ -411,3 +503,64 @@ Persona: %s
         name = ''.join(name)
         name = name[0] + name[1:].lower()
         return name
+
+    #=====================================================================
+    #
+    #   randomize_persona
+    #
+    #=====================================================================
+    def randomize_persona(self):
+        '''randomize_persona(self)
+        ---------------------------------
+        This method goes through each persona attribute and assigns a random
+        value to it'''
+        for attribute in self.persona:
+            self.persona[attribute] = random.randint(0, 
+                Entity.MAX_PERSONA_ATTRIBUTE_VALUE)
+
+
+    #=====================================================================
+    #
+    #   compare this entity with another
+    #
+    #=====================================================================
+    def get_similarity(self, other_entity=None):
+        '''get_similarity(self, other_entity)
+        ---------------------------------
+        This function takes in itself and other_entity (an Entity object). It
+        uses Pearson correlation to determine how similar this an another 
+        entity are.  1 is perfectly similar, 0 is not at all'''
+        if other_entity is None:
+            return 'Other Entity must be provided'
+
+        #Get attributes shared by both entities (should be every attribute now,
+        #   but certain entities may lack attributes in the future)
+        attribute_list = {}
+        for i in self.persona:
+            if i in other_entity.persona:
+                attribute_list[i] = 1
+            
+        #Get sum of all preferences for both entities
+        ent1_sum = sum([self.persona[i] for i in attribute_list])
+        ent2_sum = sum([other_entity.persona[i] for i in attribute_list])
+    
+        #Sum up the squares
+        ent1_sum_sq = sum([pow(self.persona[i],2) for i in attribute_list])
+        ent2_sum_sq = sum([pow(other_entity.persona[i],2) for i in attribute_list])
+
+        #Sum the products
+        product_sum = sum([self.persona[i] * other_entity.persona[i] \
+            for i in attribute_list])
+
+        #Calculate the Pearson score
+        attr_len = len(attribute_list)
+        pearson_numerator = product_sum - (ent1_sum * ent2_sum / attr_len)
+        pearson_den = math.sqrt((ent1_sum_sq - pow(ent1_sum,2) / attr_len) \
+            * (ent2_sum_sq - pow(ent2_sum,2) / attr_len))
+
+        if pearson_den == 0:
+            return 0
+        else:
+            pearson_value = pearson_numerator / pearson_den
+            return pearson_value
+
