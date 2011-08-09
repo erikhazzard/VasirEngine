@@ -11,12 +11,16 @@ IMPORTS
 
 ============================================================================="""
 #Standard python imports
-import random 
+import datetime
 import math
+import random 
 
 #Other imports
 import Race
 
+#Third party
+import cairo_plot.CairoPlot as CairoPlot
+import cairo
 """=============================================================================
 
 CLASS DEFINITIONS
@@ -395,7 +399,7 @@ Persona: %s
     #   print persona graph
     #
     #=====================================================================
-    def visualize_persona(self, other_entity=None):
+    def visualize_persona(self, other_entity=None, use_cairo=True):
         '''visual_persona(self, other_entity)
         ---------------------------------
         This function will visualize the persona of this entity.  Right
@@ -408,86 +412,123 @@ Persona: %s
         #Print bar graph of self persona
         #--------------------------------
         if other_entity is None:
-            #Store empty attribute list string (for now, will be filled in on
-            #   first loop iteration then printed)
-            attr_list = '   '
-            #Loop through a range of numbers from 0 to the max attribute value
-            #   in steps of 100
-            for i in range(int(
-                math.ceil(Entity.MAX_PERSONA_ATTRIBUTE_VALUE / 100.0))+1):
-                #First thing to print is the value of the x axis
-                cur_line_string = '%s: ' % (i)
-                #Loop through each object in the entity's persona
-                for j in self.persona:
-                    #On first loop only, print the current attribute
-                    if i == 0:
-                        attr_list += '%s\t' % (j[0:3])
+            if use_cairo is True:
+                #Line chart
+                CairoPlot.dot_line_plot(
+                    'cairo_output/self_persona', 
+                    {'self': [self.persona[i] for i in self.persona]},
+                    800,600,
+                    h_labels = [i for i in self.persona],
+                    h_bounds = (0,Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                    axis=True,
+                    grid=True,
+                    dots=True)
+                #Pie chart
+                CairoPlot.pie_plot(
+                    'cairo_output/self_pie_plot',
+                    #The data
+                    self.persona,
+                    800,600)
+            else:
+                #ASCII Chart
+                #Store empty attribute list string (for now, will be filled in on
+                #   first loop iteration then printed)
+                attr_list = '   '
+                #Loop through a range of numbers from 0 to the max attribute value
+                #   in steps of 100
+                for i in range(int(
+                    math.ceil(Entity.MAX_PERSONA_ATTRIBUTE_VALUE / 100.0))+1):
+                    #First thing to print is the value of the x axis
+                    cur_line_string = '%s: ' % (i)
+                    #Loop through each object in the entity's persona
+                    for j in self.persona:
+                        #On first loop only, print the current attribute
+                        if i == 0:
+                            attr_list += '%s\t' % (j[0:3])
 
-                    if self.persona[j] == i*100 \
-                        or (self.persona[j] > i*100 \
-                        and self.persona[j] < (i+1)*100):
-                        cur_line_string += 'X  \t'
-                    else:
-                        cur_line_string += '-  \t'
-                if i == 0:
-                    #On first iteration, print attribute list
-                    print attr_list
-                print cur_line_string
+                        if self.persona[j] == i*100 \
+                            or (self.persona[j] > i*100 \
+                            and self.persona[j] < (i+1)*100):
+                            cur_line_string += 'X  \t'
+                        else:
+                            cur_line_string += '-  \t'
+                    if i == 0:
+                        #On first iteration, print attribute list
+                        print attr_list
+                    print cur_line_string
 
         #--------------------------------
         #Print scattor plot with other entity
         #--------------------------------
         else:
-            #Text that will display the x axis during the first iteration
-            x_axis_text = ''
+            if use_cairo is True:
+                #Line chart
+                CairoPlot.dot_line_plot(
+                    'cairo_output/entity_comparison_line_chart', 
+                    {
+                        'self': [self.persona[i] for i in self.persona],
+                        'other_entity': [other_entity.persona[i] \
+                            for i in other_entity.persona],
+                    },
+                    800,600,
+                    h_labels = [i for i in self.persona],
+                    h_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                    axis=True,
+                    grid=True,
+                    dots=True)
+            else:
+                #ASCII Chart
+                #Text that will display the x axis during the first iteration
+                x_axis_text = ''
 
-            STEP = 100.0
-            AXIS_LENGTH = int(
-                math.ceil(Entity.MAX_PERSONA_ATTRIBUTE_VALUE / STEP)+1)
+                STEP = 100.0
+                AXIS_LENGTH = int(
+                    math.ceil(Entity.MAX_PERSONA_ATTRIBUTE_VALUE / STEP)+1)
 
-            #Get persona list that both entities share
-            attribute_list = []
-            for i in self.persona:
-                if i in other_entity.persona:
-                    attribute_list.append(i)
-            #Loop through a range of numbers from 0 to the max attribute value
-            #   in steps of 100
-            for i in range(AXIS_LENGTH):
-                #First thing to print is the value of the x axis
-                cur_line_string = '%s:\t' % (i)
-                #Now do the X axis
-                for j in range(AXIS_LENGTH):
-                    #On first loop only, print the current attribute
+                #Get persona list that both entities share
+                attribute_list = []
+                for i in self.persona:
+                    if i in other_entity.persona:
+                        attribute_list.append(i)
+                #Loop through a range of numbers from 0 to the max attribute value
+                #   in steps of 100
+                for i in range(AXIS_LENGTH):
+                    #First thing to print is the value of the x axis
+                    cur_line_string = '%s: ' % (i)
+                    #Now do the X axis
+                    for j in range(AXIS_LENGTH):
+                        #On first loop only, print the current attribute
+                        if i == 0:
+                            x_axis_text += '%s    \t\t' % (j)
+                        #Keep track of if we've found a property in this x,y coord
+                        found_prop = False
+                        #Loop through attribute list and see which attribtues
+                        #   need to be plotted
+                        for attr in attribute_list:
+                            if (self.persona[attr] == j*STEP \
+                                    or (self.persona[attr] > j*STEP\
+                                    and self.persona[attr] < (j+1)*STEP)) \
+                                and ((other_entity.persona[attr] == i*STEP \
+                                    or (other_entity.persona[attr] > i*STEP \
+                                    and other_entity.persona[attr] < (i+1)*STEP))):
+                                    #See if we've already found something for this 'cell'
+                                    if found_prop is False:
+                                        #We found something
+                                        found_prop = True
+                                        #Print it
+                                        cur_line_string += '%s' % (attr[0:2])
+                                    else:
+                                        cur_line_string += '|%s' % (attr[0])
+                        if found_prop is False:
+                            #Add a space if nothing was found
+                            cur_line_string += '     \t\t'
+                        else:
+                            #Add nothing if something was found
+                            cur_line_string += '\t\t' 
                     if i == 0:
-                        x_axis_text += '%s    \t' % (j)
-                    #Keep track of if we've found a property in this x,y coord
-                    found_prop = False
-                    #Loop through attribute list and see which attribtues
-                    #   need to be plotted
-                    for attr in attribute_list:
-                        if (self.persona[attr] == j*STEP \
-                                or (self.persona[attr] > j*STEP\
-                                and self.persona[attr] < (j+1)*STEP)) \
-                            and ((other_entity.persona[attr] == i*STEP \
-                                or (other_entity.persona[attr] > i*STEP \
-                                and other_entity.persona[attr] < (i+1)*STEP))):
-                                #See if we've already found something for this 'cell'
-                                if found_prop is False:
-                                    #We found something
-                                    found_prop = True
-                                    #Print it
-                                    cur_line_string += '%s' % (attr[0:2])
-                                else:
-                                    cur_line_string += '|%s' % (attr[0])
-                    if found_prop is False:
-                        #Add a space if nothing was found
-                        cur_line_string += '     \t'
-                    else:
-                        #Add nothing if something was found
-                        cur_line_string += '\t' 
-                if i == 0:
-                    print x_axis_text
-                print cur_line_string
+                        print x_axis_text
+                    print cur_line_string
+
 
     #=====================================================================
     #

@@ -1,0 +1,8 @@
+Cairoplot
+Version 1.1:
+    - Refactored all code into OO form
+    - Pizza plot renamed to Pie plot
+    - Allow use of other types of cairo surfaces (svg, pdf, etc)
+    - Added support for Bar Plots
+    - Added support for Donut Plots
+    - Added support for Function Plots (both continuous and discrete)
