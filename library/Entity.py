@@ -19,7 +19,7 @@ import random
 import Race
 
 #Third party
-import cairo_plot.CairoPlot as CairoPlot
+import cairo_plot_new.cairoplot as CairoPlot
 import cairo
 """=============================================================================
 
@@ -416,28 +416,31 @@ Persona: %s
                 #Line chart
                 CairoPlot.dot_line_plot(
                     'cairo_output/self_line_plot', 
-                    {'self': [self.persona[i] for i in self.persona]},
-                    800,600,
-                    h_labels = [i for i in self.persona],
-                    h_bounds = (0,Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                    data={'self': [self.persona[i] for i in self.persona]},
+                    width=800,
+                    height=600,
+                    x_labels = [i for i in self.persona],
+                    y_bounds = (0,Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
                     axis=True,
                     grid=True,
                     dots=True)
                 #Bar plot
-                CairoPlot.bar_plot(
+                CairoPlot.vertical_bar_plot(
                     'cairo_output/self_bar_plot', 
-                    {'self': [self.persona[i] for i in self.persona]},
-                    800,600,
-                    h_labels = [i for i in self.persona],
-                    v_labels = ['%s' % (i * 50) for i in range(11)],
+                    data={'self': [self.persona[i] for i in self.persona]},
+                    width=800,
+                    height=600,
+                    x_labels = [i for i in self.persona],
+                    y_labels = ['%s' % (i * 50) for i in range(11)],
                     grid=True,
-                    v_bounds = (0,Entity.MAX_PERSONA_ATTRIBUTE_VALUE),)
+                    y_bounds = (0,Entity.MAX_PERSONA_ATTRIBUTE_VALUE),)
                 #Pie chart
                 CairoPlot.pie_plot(
                     'cairo_output/self_pie_plot',
                     #The data
-                    self.persona,
-                    800,600)
+                    data=self.persona,
+                    width=800,
+                    height=600)
             else:
                 #ASCII Chart
                 #Store empty attribute list string (for now, will be filled in on
@@ -470,21 +473,43 @@ Persona: %s
         #Print scattor plot with other entity
         #--------------------------------
         else:
+            #Get persona list that both entities share
+            attribute_list = []
+            for i in self.persona:
+                if i in other_entity.persona:
+                    attribute_list.append(i)
+
             if use_cairo is True:
                 #Line chart
                 CairoPlot.dot_line_plot(
                     'cairo_output/entity_comparison_line_chart', 
-                    {
+                    data={
                         'self': [self.persona[i] for i in self.persona],
                         'other_entity': [other_entity.persona[i] \
                             for i in other_entity.persona],
                     },
-                    800,600,
-                    h_labels = [i for i in self.persona],
-                    v_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                    width=800,
+                    height=600,
+                    x_labels = ['%s' % (i) for i in self.persona],
+                    y_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
                     axis=True,
                     grid=True,
                     dots=True)
+                #Scatter chart
+                CairoPlot.scatter_plot(
+                    'cairo_output/entity_comparison_scatter_plot', 
+                    data={
+                        'data': [(self.persona[i],
+                                other_entity.persona[i]) for i in attribute_list],
+                    },
+                    width=800,
+                    height=600,
+                    y_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                    x_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                    axis=True,
+                    dots=True,
+                    discrete=True,
+                    grid=True,)
             else:
                 #ASCII Chart
                 #Text that will display the x axis during the first iteration
@@ -494,11 +519,6 @@ Persona: %s
                 AXIS_LENGTH = int(
                     math.ceil(Entity.MAX_PERSONA_ATTRIBUTE_VALUE / STEP)+1)
 
-                #Get persona list that both entities share
-                attribute_list = []
-                for i in self.persona:
-                    if i in other_entity.persona:
-                        attribute_list.append(i)
                 #Loop through a range of numbers from 0 to the max attribute value
                 #   in steps of 100
                 for i in range(AXIS_LENGTH):
