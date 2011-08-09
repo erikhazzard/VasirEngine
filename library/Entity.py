@@ -415,7 +415,7 @@ Persona: %s
             if use_cairo is True:
                 #Line chart
                 CairoPlot.dot_line_plot(
-                    'cairo_output/self_line_plot', 
+                    'cairo_output/self_line_plot.png', 
                     data={'self': [self.persona[i] for i in self.persona]},
                     width=800,
                     height=600,
@@ -427,7 +427,7 @@ Persona: %s
                     dots=5)
                 #Bar plot
                 CairoPlot.vertical_bar_plot(
-                    'cairo_output/self_bar_plot', 
+                    'cairo_output/self_bar_plot.png', 
                     data={'self': [self.persona[i] for i in self.persona]},
                     width=800,
                     height=600,
@@ -437,7 +437,7 @@ Persona: %s
                     y_bounds = (0,Entity.MAX_PERSONA_ATTRIBUTE_VALUE),)
                 #Pie chart
                 CairoPlot.pie_plot(
-                    'cairo_output/self_pie_plot',
+                    'cairo_output/self_pie_plot.png',
                     #The data
                     data=self.persona,
                     width=800,
@@ -483,7 +483,7 @@ Persona: %s
             if use_cairo is True:
                 #Line chart
                 CairoPlot.dot_line_plot(
-                    'cairo_output/entity_comparison_line_chart', 
+                    'cairo_output/entity_comparison_line_chart.png', 
                     data={
                         'self': [self.persona[i] for i in self.persona],
                         'other_entity': [other_entity.persona[i] \
@@ -499,7 +499,7 @@ Persona: %s
                     dots=5)
                 #Scatter chart
                 CairoPlot.scatter_plot(
-                    'cairo_output/entity_comparison_scatter_plot', 
+                    'cairo_output/entity_comparison_scatter_plot.png', 
                     data={
                         'similarity = %s' % (
                             self.get_similarity(other_entity)): [(self.persona[i],
