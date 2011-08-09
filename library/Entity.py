@@ -419,11 +419,12 @@ Persona: %s
                     data={'self': [self.persona[i] for i in self.persona]},
                     width=800,
                     height=600,
+                    series_colors='blue_darkblue',
                     x_labels = [i for i in self.persona],
                     y_bounds = (0,Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
                     axis=True,
                     grid=True,
-                    dots=True)
+                    dots=5)
                 #Bar plot
                 CairoPlot.vertical_bar_plot(
                     'cairo_output/self_bar_plot', 
@@ -490,16 +491,18 @@ Persona: %s
                     },
                     width=800,
                     height=600,
+                    series_colors='blue_darkblue',
                     x_labels = ['%s' % (i) for i in self.persona],
                     y_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
                     axis=True,
                     grid=True,
-                    dots=True)
+                    dots=5)
                 #Scatter chart
                 CairoPlot.scatter_plot(
                     'cairo_output/entity_comparison_scatter_plot', 
                     data={
-                        'data': [(self.persona[i],
+                        'similarity = %s' % (
+                            self.get_similarity(other_entity)): [(self.persona[i],
                                 other_entity.persona[i]) for i in attribute_list],
                     },
                     series_colors='blue_darkblue',
