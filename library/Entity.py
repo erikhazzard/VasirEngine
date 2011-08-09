@@ -415,7 +415,7 @@ Persona: %s
             if use_cairo is True:
                 #Line chart
                 CairoPlot.dot_line_plot(
-                    'cairo_output/self_persona', 
+                    'cairo_output/self_line_plot', 
                     {'self': [self.persona[i] for i in self.persona]},
                     800,600,
                     h_labels = [i for i in self.persona],
@@ -423,6 +423,15 @@ Persona: %s
                     axis=True,
                     grid=True,
                     dots=True)
+                #Bar plot
+                CairoPlot.bar_plot(
+                    'cairo_output/self_bar_plot', 
+                    {'self': [self.persona[i] for i in self.persona]},
+                    800,600,
+                    h_labels = [i for i in self.persona],
+                    v_labels = ['%s' % (i * 50) for i in range(11)],
+                    grid=True,
+                    v_bounds = (0,Entity.MAX_PERSONA_ATTRIBUTE_VALUE),)
                 #Pie chart
                 CairoPlot.pie_plot(
                     'cairo_output/self_pie_plot',
@@ -472,7 +481,7 @@ Persona: %s
                     },
                     800,600,
                     h_labels = [i for i in self.persona],
-                    h_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                    v_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
                     axis=True,
                     grid=True,
                     dots=True)
@@ -555,6 +564,7 @@ Persona: %s
         ---------------------------------
         This method goes through each persona attribute and assigns a random
         value to it'''
+        random.seed(datetime.datetime.now())
         for attribute in self.persona:
             self.persona[attribute] = random.randint(0, 
                 Entity.MAX_PERSONA_ATTRIBUTE_VALUE)
