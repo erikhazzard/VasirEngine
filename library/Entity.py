@@ -502,12 +502,14 @@ Persona: %s
                         'data': [(self.persona[i],
                                 other_entity.persona[i]) for i in attribute_list],
                     },
+                    series_colors='blue_darkblue',
+                    series_legend=True,
                     width=800,
                     height=600,
                     y_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
                     x_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
                     axis=True,
-                    dots=True,
+                    dots=5,
                     discrete=True,
                     grid=True,)
             else:
