@@ -17,6 +17,7 @@ import random
 
 #Other imports
 import Race
+import Goals
 
 #Third party
 import cairo_plot_new.cairoplot as CairoPlot
@@ -45,8 +46,9 @@ class Entity(object):
         (0, 'Male'),
         (1, 'Female'),
     )
-    MAX_PERSONA_ATTRIBUTE_VALUE = 500
-    DEFAULT_PERSONA_ATTRIBUTE_VALUE = 100
+    DEFAULT_PERSONA_ATTRIBUTE_VALUE = 0
+    MIN_PERSONA_ATTRIBUTE_VALUE = -100
+    MAX_PERSONA_ATTRIBUTE_VALUE = 100
     #=====================================================================
     #
     #   Entity Description
@@ -82,6 +84,7 @@ class Entity(object):
             self.name = kwargs['name']
         except KeyError:
             self.name = self.generate_name()
+
         #=====================================================================
         #   Characteristics
         #=====================================================================
@@ -133,8 +136,67 @@ class Entity(object):
             self.gender = Entity.GENDER[
                 random.randint(0, 1)]
 
+        #------------------------------
+        #Hunger
+        #
+        #Entities need nourishment.  Having a very high hunger value affects
+        #   stats and possibly behavior.  Eating lowers hunger value
+        #--------------------------------
+        try:
+            self.hunger = kwargs['hunger']
+        except KeyError:
+            #Pick a gender at random
+            self.hunger = 0
+
         #=====================================================================
-        #   Persona
+        #
+        #   Entity Stats
+        #
+        #TODO: Comment
+        #=====================================================================
+        #Stats
+        self.stats = {}
+        
+        #Agility
+        try:
+            self.stats['agility'] = kwargs['agility']
+        except KeyError:
+            self.stats['agility'] = 10
+        
+        #Dexterity
+        try:
+            self.stats['dexterity'] = kwargs['dexterity']
+        except KeyError:
+            self.stats['dexterity'] = 10
+        
+        #Intelligence
+        try:
+            self.stats['intelligence'] = kwargs['intelligence']
+        except KeyError:
+            self.stats['intelligence'] = 10
+
+        #Stamina
+        try:
+            self.stats['stamina'] = kwargs['stamina']
+        except KeyError:
+            self.stats['stamina'] = 10
+
+        #Strength
+        try:
+            self.stats['strength'] = kwargs['strength']
+        except KeyError:
+            self.stats['strength'] = 10
+            
+        #Wisdom
+        try:
+            self.stats['wisdom'] = kwargs['wisdom']
+        except KeyError:
+            self.stats['wisdom'] = 10
+
+        #=====================================================================
+        #
+        #   Entity Description
+        #
         #=====================================================================
         #
         #   The persona is based on five 'personality' traits as observed by
@@ -146,6 +208,11 @@ class Entity(object):
         #   Attributes alone will not always determine what actions an entity
         #   does.  Sometimes an entity may do things completely outside their
         #   normal behavior, and these events would affect their attributes.
+        #
+        #   Negative values of attributes affect how much of the 'opposite' 
+        #   value of the attribute the entity has.  For instance, -100 in
+        #   'Openness' would mean the entity is NOT open and is very reserved
+        #   and cautious
         #--------------------------------
         #Set up a base persona object
         #Define attributes, if any are passed in then use them
@@ -162,100 +229,54 @@ class Entity(object):
         #Group 1: OPENNESS
         #
         #--------------------------------
-        #Curosity (Opposite: Cautious)
-        #--------------------------------
-        #Curiosity affects how much, to some degree, an entity wants to
-        #   experience new things. 
+        #(inventive/curious vs. consistent/cautious). Appreciation for art, 
+        #   emotion, adventure, unusual ideas, curiosity, and variety of
+        #   experience.  Openness is affects how much (to a degree) an 
+        #   entity wants to experience new things. 
         try:
-            self.persona['curiosity'] = kwargs['persona']['curiosity']
+            self.persona['openness'] = kwargs['persona']['openness']
         except KeyError:
-            self.persona['curiosity'] = self.DEFAULT_ATTRIBUTE_VALUE
-        
-        #Inventive (Opposite: Consistent)
-        #--------------------------------
-        #Inventive affects, to some degree, how much an entity desires to
-        #   create and try new things.  Related to curiosity to some degree
-        try:
-            self.persona['inventive'] = kwargs['persona']['inventive']
-        except KeyError:
-            self.persona['inventive'] = self.DEFAULT_ATTRIBUTE_VALUE
+            self.persona['openness'] = self.DEFAULT_ATTRIBUTE_VALUE
 
-        #LOGIC
-        #--------------------------------
-        #Logic affects how much an entity plans out their decisions, and
-        #   how, to some degree, the entity is open to changing attributes
-        #   and viewpoints.  Too much logic can, to some degree, cause 
-        #   decision paralysis and lack of action
-        try:
-            self.persona['logic'] = kwargs['persona']['logic']
-        except KeyError:
-            self.persona['logic'] = self.DEFAULT_ATTRIBUTE_VALUE
 
         #--------------------------------
         #
         #Group 2: Conscientiousness 
         #
         #--------------------------------
-        #Efficient (Opposite: Easy-going)
-        #--------------------------------
-        #Efficient affects how much a character focuses on getting things
-        #   done, to some extent.  Exteremely efficient entities may
-        #   affect the perception that entities have of them to a negative
-        #   degree, for instance.
+        #Conscientiousness affects how much a character focuses on getting things
+        #   done, to some extent - self discipline, acheivement based, etc.
+        #   Low values would mean entity is more spontaneous
         try:
-            self.persona['efficient'] = kwargs['persona']['efficient']
+            self.persona['conscientiousness'] = kwargs['persona']['conscientious']
         except KeyError:
-            self.persona['efficient'] = self.DEFAULT_ATTRIBUTE_VALUE
-
-        #Organized (Opposite: Care less)
-        #--------------------------------
-        #Organized affects how much a character likes structure and order,
-        #   to some degree.
-        try:
-            self.persona['organized'] = kwargs['persona']['organized']
-        except KeyError:
-            self.persona['organized'] = self.DEFAULT_ATTRIBUTE_VALUE
+            self.persona['conscientiousness'] = self.DEFAULT_ATTRIBUTE_VALUE
 
         #--------------------------------
         #
         #Group 3: Extraversion 
         #
         #--------------------------------
-        #Outgoing (Opposite: Shy)
-        #--------------------------------
+        #Extraversion affects how much the entity desires to seek stimulation
+        #   with other entities, how outgoing / energetic vs. how solitary /
+        #   reserved they are
         try:
-            self.persona['outgoing'] = kwargs['persona']['outgoing']
+            self.persona['extraversion'] = kwargs['persona']['extraversion']
         except KeyError:
-            self.persona['outgoing'] = self.DEFAULT_ATTRIBUTE_VALUE
-
-        #Energetic (Opposite: Reserved)
-        #--------------------------------
-        try:
-            self.persona['energetic'] = kwargs['persona']['energetic']
-        except KeyError:
-            self.persona['energetic'] = self.DEFAULT_ATTRIBUTE_VALUE
+            self.persona['extraversion'] = self.DEFAULT_ATTRIBUTE_VALUE
 
         #--------------------------------
         #
         #Group 4: Agreeableness 
         #
         #--------------------------------
-        #Friendly (Opposite: Cold)
-        #--------------------------------
+        #Agreeableness affects the entity's ability to relate to other entities
+        #   Lower values mean entity tends to be suspicious of other entities /
+        #   unkind or cold
         try:
-            self.persona['friendly'] = kwargs['persona']['friendly']
+            self.persona['agreeableness'] = kwargs['persona']['agreeableness']
         except KeyError:
-            self.persona['friendly'] = self.DEFAULT_ATTRIBUTE_VALUE
-
-        #Empathy / Compassion (Opposite: Unkind)
-        #--------------------------------
-        #Empathy affects the entity's ability to relate to other entities
-        #   It affects, to some degree, how this entity's attributes can
-        #   change based on interactions with other entities.  
-        try:
-            self.persona['empathy'] = kwargs['persona']['empathy']
-        except KeyError:
-            self.persona['empathy'] = self.DEFAULT_ATTRIBUTE_VALUE
+            self.persona['agreeableness'] = self.DEFAULT_ATTRIBUTE_VALUE
 
  
         #--------------------------------
@@ -263,29 +284,13 @@ class Entity(object):
         #Group 5: Neuroticism 
         #
         #--------------------------------       
-        #Sensitive (Opposite: Secure)
-        #--------------------------------
+        #Neuroticism affects how an entity experiences unpleasent emotions
+        #   easily - such as anger, axiety, depression, etc.  
+        #   This affects secure / confidence vs. sensitive / nervousness
         try:
-            self.persona['sensitive'] = kwargs['persona']['sensitive']
+            self.persona['neuroticism'] = kwargs['persona']['neuroticism']
         except KeyError:
-            self.persona['sensitive'] = self.DEFAULT_ATTRIBUTE_VALUE
-
-
-        #Confident (Opposite: Nervous)
-        #--------------------------------
-        try:
-            self.persona['confident'] = kwargs['persona']['confident']
-        except KeyError:
-            self.persona['confident'] = self.DEFAULT_ATTRIBUTE_VALUE
-
-        #GREED
-        #--------------------------------
-        #Greed affects how much an entity wants things and, to some degree,
-        #   the lengths it will go to obtain them
-        try:
-            self.persona['greed'] = kwargs['persona']['empathy']
-        except KeyError:
-            self.persona['greed'] = self.DEFAULT_ATTRIBUTE_VALUE
+            self.persona['neuroticism'] = self.DEFAULT_ATTRIBUTE_VALUE
 
         '''------------------------------
             Set up function calls
@@ -345,6 +350,15 @@ class Entity(object):
         #   }
 
         #=====================================================================
+        #   Entity's Goals
+        #=====================================================================
+        #
+        #   Entity is goal based, so grab the goals by calling the entity's
+        #   get_goals func
+        #--------------------------------
+        self.goals = self.get_goals()
+
+        #=====================================================================
         #   Finalize Entity
         #=====================================================================
         #Increase the _entity_created_count value
@@ -370,11 +384,15 @@ class Entity(object):
         return '''
 ID: %s
 Name: %s
+Stats: %s
 Persona: %s
+Goals: %s
         ''' % (
         self.get_id(),
         self.get_name(),
+        self.stats,
         self.persona,
+        self.goals,
         )
     #=====================================================================
     #
@@ -396,10 +414,47 @@ Persona: %s
 
     #=====================================================================
     #
+    #   Get Goals
+    #
+    #=====================================================================
+    def get_goals(self):
+        '''get_goals(self)
+        ---------------------------------
+        Get goals for the entity based on their persona values, pulls in
+        from Goals.py'''
+        #Get copy of goals
+        goals = Goals.GOALS
+        
+        #This will be the dict object that we return which will contain
+        #   goals and their weights (e.g. {'goal': {'weight': 0.8}} )
+        entity_goals = {}
+
+        #Loop through each goal
+        for goal in goals:
+            #If persona values are in range, add this goal to the entity's
+            #   goal dict
+            add_to_goals = True 
+            for attribute in goals[goal]['persona']:
+                if self.persona[attribute] >= goals[goal]['persona'][
+                    attribute][0] \
+                    and self.persona[attribute] <= goals[goal]['persona'][
+                    attribute][1]:
+                    pass
+                else:
+                    add_to_goals = False
+            if add_to_goals is True:
+                entity_goals[goal] = {'test': 42}
+
+        #return entity_goals dict
+        return entity_goals
+            
+
+    #=====================================================================
+    #
     #   print persona graph
     #
     #=====================================================================
-    def visualize_persona(self, other_entity=None, use_cairo=True):
+    def visualize_persona(self, other_entity=None):
         '''visual_persona(self, other_entity)
         ---------------------------------
         This function will visualize the persona of this entity.  Right
@@ -412,63 +467,38 @@ Persona: %s
         #Print bar graph of self persona
         #--------------------------------
         if other_entity is None:
-            if use_cairo is True:
-                #Line chart
-                CairoPlot.dot_line_plot(
-                    'cairo_output/self_line_plot.png', 
-                    data={'self': [self.persona[i] for i in self.persona]},
-                    width=800,
-                    height=600,
-                    series_colors='blue_darkblue',
-                    x_labels = [i for i in self.persona],
-                    y_bounds = (0,Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
-                    axis=True,
-                    grid=True,
-                    dots=5)
-                #Bar plot
-                CairoPlot.vertical_bar_plot(
-                    'cairo_output/self_bar_plot.png', 
-                    data={'self': [self.persona[i] for i in self.persona]},
-                    width=800,
-                    height=600,
-                    x_labels = [i for i in self.persona],
-                    y_labels = ['%s' % (i * 50) for i in range(11)],
-                    grid=True,
-                    y_bounds = (0,Entity.MAX_PERSONA_ATTRIBUTE_VALUE),)
-                #Pie chart
-                CairoPlot.pie_plot(
-                    'cairo_output/self_pie_plot.png',
-                    #The data
-                    data=self.persona,
-                    width=800,
-                    height=600)
-            else:
-                #ASCII Chart
-                #Store empty attribute list string (for now, will be filled in on
-                #   first loop iteration then printed)
-                attr_list = '   '
-                #Loop through a range of numbers from 0 to the max attribute value
-                #   in steps of 100
-                for i in range(int(
-                    math.ceil(Entity.MAX_PERSONA_ATTRIBUTE_VALUE / 100.0))+1):
-                    #First thing to print is the value of the x axis
-                    cur_line_string = '%s: ' % (i)
-                    #Loop through each object in the entity's persona
-                    for j in self.persona:
-                        #On first loop only, print the current attribute
-                        if i == 0:
-                            attr_list += '%s\t' % (j[0:3])
+            #Line chart
+            CairoPlot.dot_line_plot(
+                'cairo_output/self_line_plot.png', 
+                data={'self': [self.persona[i] for i in self.persona]},
+                width=800,
+                height=600,
+                series_colors='blue_darkblue',
+                x_labels = [i for i in self.persona],
+                y_bounds = (Entity.MIN_PERSONA_ATTRIBUTE_VALUE,
+                            Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                axis=True,
+                grid=True,
+                dots=5)
+            #Bar plot
+            CairoPlot.vertical_bar_plot(
+                'cairo_output/self_bar_plot.png', 
+                data={'self': [self.persona[i] for i in self.persona]},
+                width=800,
+                height=600,
+                x_labels = [i for i in self.persona],
+                grid=True,
+                y_bounds = (
+                    Entity.MIN_PERSONA_ATTRIBUTE_VALUE, 
+                    Entity.MAX_PERSONA_ATTRIBUTE_VALUE),)
+            #Pie chart
+            CairoPlot.pie_plot(
+                'cairo_output/self_pie_plot.png',
+                #The data
+                data=self.persona,
+                width=800,
+                height=600)
 
-                        if self.persona[j] == i*100 \
-                            or (self.persona[j] > i*100 \
-                            and self.persona[j] < (i+1)*100):
-                            cur_line_string += 'X  \t'
-                        else:
-                            cur_line_string += '-  \t'
-                    if i == 0:
-                        #On first iteration, print attribute list
-                        print attr_list
-                    print cur_line_string
 
         #--------------------------------
         #Print scattor plot with other entity
@@ -480,89 +510,46 @@ Persona: %s
                 if i in other_entity.persona:
                     attribute_list.append(i)
 
-            if use_cairo is True:
-                #Line chart
-                CairoPlot.dot_line_plot(
-                    'cairo_output/entity_comparison_line_chart.png', 
-                    data={
-                        'self': [self.persona[i] for i in self.persona],
-                        'other_entity': [other_entity.persona[i] \
-                            for i in other_entity.persona],
-                    },
-                    width=800,
-                    height=600,
-                    series_colors='blue_darkblue',
-                    x_labels = ['%s' % (i) for i in self.persona],
-                    y_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
-                    axis=True,
-                    grid=True,
-                    dots=5)
-                #Scatter chart
-                CairoPlot.scatter_plot(
-                    'cairo_output/entity_comparison_scatter_plot.png', 
-                    data={
-                        'similarity = %s' % (
-                            self.get_similarity(other_entity)): [(self.persona[i],
-                                other_entity.persona[i]) for i in attribute_list],
-                    },
-                    series_colors='blue_darkblue',
-                    series_legend=True,
-                    width=800,
-                    height=600,
-                    y_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
-                    x_bounds = (0, Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
-                    axis=True,
-                    dots=5,
-                    discrete=True,
-                    grid=True,)
-            else:
-                #ASCII Chart
-                #Text that will display the x axis during the first iteration
-                x_axis_text = ''
-
-                STEP = 100.0
-                AXIS_LENGTH = int(
-                    math.ceil(Entity.MAX_PERSONA_ATTRIBUTE_VALUE / STEP)+1)
-
-                #Loop through a range of numbers from 0 to the max attribute value
-                #   in steps of 100
-                for i in range(AXIS_LENGTH):
-                    #First thing to print is the value of the x axis
-                    cur_line_string = '%s: ' % (i)
-                    #Now do the X axis
-                    for j in range(AXIS_LENGTH):
-                        #On first loop only, print the current attribute
-                        if i == 0:
-                            x_axis_text += '%s    \t\t' % (j)
-                        #Keep track of if we've found a property in this x,y coord
-                        found_prop = False
-                        #Loop through attribute list and see which attribtues
-                        #   need to be plotted
-                        for attr in attribute_list:
-                            if (self.persona[attr] == j*STEP \
-                                    or (self.persona[attr] > j*STEP\
-                                    and self.persona[attr] < (j+1)*STEP)) \
-                                and ((other_entity.persona[attr] == i*STEP \
-                                    or (other_entity.persona[attr] > i*STEP \
-                                    and other_entity.persona[attr] < (i+1)*STEP))):
-                                    #See if we've already found something for this 'cell'
-                                    if found_prop is False:
-                                        #We found something
-                                        found_prop = True
-                                        #Print it
-                                        cur_line_string += '%s' % (attr[0:2])
-                                    else:
-                                        cur_line_string += '|%s' % (attr[0])
-                        if found_prop is False:
-                            #Add a space if nothing was found
-                            cur_line_string += '     \t\t'
-                        else:
-                            #Add nothing if something was found
-                            cur_line_string += '\t\t' 
-                    if i == 0:
-                        print x_axis_text
-                    print cur_line_string
-
+            #Line chart
+            CairoPlot.dot_line_plot(
+                'cairo_output/entity_comparison_line_chart.png', 
+                data={
+                    'self': [self.persona[i] for i in self.persona],
+                    'other_entity': [other_entity.persona[i] \
+                        for i in other_entity.persona],
+                },
+                width=800,
+                height=600,
+                series_colors='blue_darkblue',
+                x_labels = ['%s' % (i) for i in self.persona],
+                y_bounds = (
+                    Entity.MIN_PERSONA_ATTRIBUTE_VALUE,
+                    Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                axis=True,
+                grid=True,
+                dots=5)
+            #Scatter chart
+            CairoPlot.scatter_plot(
+                'cairo_output/entity_comparison_scatter_plot.png', 
+                data={
+                    'similarity = %s' % (
+                        self.get_similarity(other_entity)): [(self.persona[i],
+                            other_entity.persona[i]) for i in attribute_list],
+                },
+                series_colors='blue_darkblue',
+                series_legend=True,
+                width=800,
+                height=600,
+                y_bounds = (
+                    Entity.MIN_PERSONA_ATTRIBUTE_VALUE,
+                    Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                x_bounds = (
+                    Entity.MIN_PERSONA_ATTRIBUTE_VALUE,
+                    Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                axis=True,
+                dots=5,
+                discrete=True,
+                grid=True,)
 
     #=====================================================================
     #
@@ -591,7 +578,8 @@ Persona: %s
         value to it'''
         random.seed(datetime.datetime.now())
         for attribute in self.persona:
-            self.persona[attribute] = random.randint(0, 
+            self.persona[attribute] = random.randint(
+                Entity.MIN_PERSONA_ATTRIBUTE_VALUE,
                 Entity.MAX_PERSONA_ATTRIBUTE_VALUE)
 
 
