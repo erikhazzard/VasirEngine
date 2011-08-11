@@ -47,8 +47,8 @@ class Entity(object):
         (1, 'Female'),
     )
     DEFAULT_PERSONA_ATTRIBUTE_VALUE = 0
-    MIN_PERSONA_ATTRIBUTE_VALUE = -100
     MAX_PERSONA_ATTRIBUTE_VALUE = 100
+    MIN_PERSONA_ATTRIBUTE_VALUE = -MAX_PERSONA_ATTRIBUTE_VALUE
     #=====================================================================
     #
     #   Entity Description
@@ -384,15 +384,17 @@ class Entity(object):
         return '''
 ID: %s
 Name: %s
+Gender: %s
 Stats: %s
 Persona: %s
 Goals: %s
         ''' % (
         self.get_id(),
         self.get_name(),
+        self.gender[1],
         self.stats,
         self.persona,
-        self.goals,
+        self.print_goals(),
         )
     #=====================================================================
     #
@@ -411,6 +413,16 @@ Goals: %s
         ---------------------------------
         Returns the name of the entity'''
         return self.name
+    def print_goals(self):
+        '''print_goals(self):
+        ---------------------------------
+        Prints the goals in an easier to read way, useful for __repr__'''
+        goal_string = ''
+        for goal in self.goals:
+            goal_string += '\t%s: %s \n' % (
+                goal, self.goals[goal]['priority'],
+            )
+        return goal_string
 
     #=====================================================================
     #
@@ -434,16 +446,109 @@ Goals: %s
             #If persona values are in range, add this goal to the entity's
             #   goal dict
             add_to_goals = True 
+            #We also need to keep a list of percentages that represent
+            #   how 'close' a persona value is to the range of possible
+            #   persona values from the goal.  For instance, if a
+            #   goal has a persona attribute 'openness' range from (20, 80)
+            #   and the Entity's openness value is 40, the closeness would be
+            #   33%.  If the goal has multiple persona attributes, each % value
+            #   is added to the current_persona_closeness list
+            #TODO: Determine the 'range' of closeness
+            current_persona_closeness = []
             for attribute in goals[goal]['persona']:
-                if self.persona[attribute] >= goals[goal]['persona'][
-                    attribute][0] \
-                    and self.persona[attribute] <= goals[goal]['persona'][
-                    attribute][1]:
-                    pass
+                #A goal will likely have multiple persona attributes, so
+                #   if the Entity does NOT fall in range of even one of them,
+                #   they won't get the goal.  We'll use a variable called
+                #   add_to_goals to keep track if the goal can be added
+                #   or not.  The first time a persona value does not fall
+                #   within the proper range, this will be set to false.
+
+                #Get current attribute's goal persona min and max bounds
+                #   Use MAX value for both, because the MIN value is always negative.
+                #   We don't want to potentially multiple two negatives which would give
+                #   an undesired positive
+                cur_attribute_min_bound = (Entity.MAX_PERSONA_ATTRIBUTE_VALUE \
+                        * goals[goal]['persona'][attribute][0])
+                cur_attribute_max_bound = (Entity.MAX_PERSONA_ATTRIBUTE_VALUE \
+                        * goals[goal]['persona'][attribute][1])
+                
+                #For each attribute of the persona dict in the current goal,
+                #   check if the entity's persona values are in range.  
+                if self.persona[attribute] >= cur_attribute_min_bound \
+                    and self.persona[attribute] <= cur_attribute_max_bound:
+                    #The goal values in GOALS dict are percentages, so get
+                    #   the actual value from the max / min values.
+                    #If the current persona attribute value is within
+                    #   the valid percentage range, then grab the 'closeness'
+                    #Percentage is 100 * (x-a)/(b-a), where a and b are the
+                    #   interval to check against (in this case, the goal's
+                    #   persona attribute value range)
+                    closeness = ( 100 * (
+                        (self.persona[attribute] - cur_attribute_min_bound) / (
+                        cur_attribute_max_bound - cur_attribute_min_bound)))
+                    #Now that we have the closeness value, we need to figure
+                    #   out on which 'side' the closeness value is on.  If 
+                    #   a goal has a value range of (-100, 40) then the -100
+                    #   is more important since it is higher, so the closness
+                    #   needs to be inverted (by default, the closeness is
+                    #   always how much % it is to B, which is the second value
+                    #   in the range of values)
+                    #Get absolute value to compare ranges
+                    if abs(cur_attribute_min_bound) \
+                        > abs(cur_attribute_max_bound):
+                        #If the min bound absolute value is bigger than the max
+                        #   bound, the interval range [a,b] should really be
+                        #   reversed to [b,a], which means the closeness needs
+                        #   to be inverted
+                        closeness = 100 - closeness
+                    elif abs(cur_attribute_min_bound) \
+                        == abs(cur_attribute_max_bound):
+                        #If the min_bound and max_bound equal each other, the
+                        #   closeness value is irrelevant
+                        #When weighing goals, if closeness has a value of none
+                        #   then the weight of this attribtue in determining
+                        #   the overall goal weight will be irrelevant, and be
+                        #   randomized
+                        closeness = None
+                        
+
+                    #Add closeness to the current_persona_closeness list
+                    current_persona_closeness.append(closeness)
+
                 else:
+                    #Otherwise, this is not a goal the entity has
                     add_to_goals = False
+
             if add_to_goals is True:
-                entity_goals[goal] = {'test': 42}
+                #Add this goal to the Entity's stored goals.  Add a weight
+                #   to it, which will affect how badly this Entity wants
+                #   to pursue this goal in relation to their other goals
+                entity_goals[goal] = {'closeness': current_persona_closeness}
+
+        #--------------------------------
+        #Get priority of goals
+        #--------------------------------
+        #Now, loop through the goals we just defined for this entity and
+        #   set the priority for each goal
+        for goal in entity_goals:
+            #Get average of closeness values
+            closeness_average = sum(entity_goals[goal]['closeness']) / len(
+                entity_goals[goal]['closeness'])
+            #Store average closeness
+            entity_goals[goal]['closeness_average'] = closeness_average
+        #Now get the combined values of the averages for all goals
+        combined_goal_average = [entity_goals[goal]['closeness_average'] for \
+            goal in entity_goals]
+        #Get sum of the combined goal average
+        combined_goal_average = sum(combined_goal_average)
+        #Now we need to divide 100 by this so we can assign proper values
+        #   for the 'weight' each goal has, percentage wise, out of 100
+        goal_value_modifier = 100.0 / combined_goal_average
+        #Finally, set the 'priority', or a weight, for each goal based on this 
+        #   modifier and it's previous closeness averages
+        for goal in entity_goals:
+            entity_goals[goal]['priority'] = entity_goals[goal][
+                'closeness_average'] * goal_value_modifier
 
         #return entity_goals dict
         return entity_goals

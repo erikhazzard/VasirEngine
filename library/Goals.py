@@ -14,64 +14,69 @@ IMPORTS
 Goals
 
 ============================================================================="""
+'''Persona values are a tuple of (MIN, MAX), where MIN and MAX are
+percentage values that indicate the range of possible persona values'''
 GOALS = {
     'self_preservation': {
         'persona': {
-            'agreeableness': (-100, -80),
-            'neuroticism': (80, 100), 
+            'agreeableness': (-1.0, -.8),
+            'neuroticism': (.8, 1.0), 
         },
     },
     'other_preservation': {
+        #other preservation is basically the opposite of self preservation, but
+        #   there could be cases where neither goal is applied
         'persona': {
-            'agreeableness': (-79, 100),
-            'neuroticism': (-100,79),
+            'agreeableness': (-.79, 1.0),
+            'neuroticism': (-1.0,.79),
         },
     },
     'maintaing_health': {
         'persona': {
-            'conscientiousness': (20, 100),
+            'conscientiousness': (.2, 1.0),
         },
     },
     'power': {
         'persona': {
-            'extraversion': (60, 100),
-            'conscientiousness': (40, 100),
+            'extraversion': (.6, 1.0),
+            'conscientiousness': (.4, 1.0),
+            
         },
     },
     'wealth': {
         'persona': {
-            'openness': (-100, 70),
-            'conscientiousness': (0, 100),
+            'openness': (-1.0, .7),
+            'conscientiousness': (0.0, 1.0),
         },
     },
     'profession': {
         'persona': {
-            'conscientiousness': (30,100),
-            'neuroticism': (-100, 50),
+            'conscientiousness': (.3,1.0),
+            'neuroticism': (-1.0, .5),
         },
     },
     'friendship': {
         'persona': {
-            'openness': (-70, 100),
-            'extraversion': (0, 100),
-            'agreeableness': (-50, 100),
+            'openness': (-.7, 1.0),
+            'extraversion': (0.0, 1.0),
+            'agreeableness': (-.5, 1.0),
         },
     },
     'romance': {
         'persona': {
-            'openness': (-20, 100),
-            'agreeableness': (-50, 100),
+            'openness': (-.2, 1.0),
+            'agreeableness': (-.5, 1.0),
         },
     },
     'respect': {
         'persona': {
-            'conscientiousness': (20,100),
-            'extraversion': (40,100),
+            'conscientiousness': (.4,1.0),
+            'extraversion': (.5,1.0),
         },
     },
     'creativity': {
         'persona': {
-            'openness': (40,100),
+            'openness': (.4,1.0),
         },
     },
 }
