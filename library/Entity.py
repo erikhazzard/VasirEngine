@@ -148,6 +148,19 @@ class Entity(object):
             #Pick a gender at random
             self.hunger = 0
 
+        #------------------------------
+        #Restedness
+        #
+        #How tired the entity is.  The more tired an entity is, the more sleep
+        #   or rest it needs to become less tired.  Tiredness can affect stats
+        #   and persona (more tired, less alert)
+        #--------------------------------
+        try:
+            self.restedness = kwargs['restedness']
+        except KeyError:
+            #Pick a gender at random
+            self.restedness = 0
+
         #=====================================================================
         #
         #   Entity Stats
@@ -194,8 +207,16 @@ class Entity(object):
             self.stats['wisdom'] = 10
 
         #=====================================================================
+        #   Wealth / Money
+        #=====================================================================
+        try:
+            self.money = kwargs['money']
+        except KeyError:
+            self.money = random.randint(-10000,10000)
+
+        #=====================================================================
         #
-        #   Entity Description
+        #   Entity Persona / Psychology
         #
         #=====================================================================
         #
@@ -350,6 +371,15 @@ class Entity(object):
         #   }
 
         #=====================================================================
+        #
+        #   Mood / Emotional State
+        #
+        #=====================================================================
+        #The Entity's mood affects their persona values (temporarily).  Persona
+        #   values affect how easily an Entity gets into a particular mood
+        self.mood = {}
+
+        #=====================================================================
         #   Entity's Goals
         #=====================================================================
         #
@@ -385,6 +415,7 @@ class Entity(object):
 ID: %s
 Name: %s
 Gender: %s
+Money: %s
 Stats: %s
 Persona: %s
 Goals: %s
@@ -392,6 +423,7 @@ Goals: %s
         self.get_id(),
         self.get_name(),
         self.gender[1],
+        self.money,
         self.stats,
         self.persona,
         self.print_goals(),
@@ -423,6 +455,41 @@ Goals: %s
                 goal, self.goals[goal]['priority'],
             )
         return goal_string
+
+
+    def get_attribute_value(self,
+        dict_key=None, 
+        dict_key_2=None,
+        dict_key_3=None,
+        alternative_return_value=None):
+        '''Takes in possible keys / values to look up from the Entity
+        and returns the value if it is found.  If it is NOT found,
+        it will return the alternative_return_value'''
+
+        #Get the dict representation of the entity and return the 
+        #   disired value from the passed in parameters
+        ret_value = alternative_return_value
+
+        if dict_key is not None:
+            #First key passed in
+            try:
+                ret_value = self.__dict__[dict_key]
+            except KeyError:
+                ret_value = alternative_return_value
+            if dict_key_2 is not None:
+                #Second key passed in key passed in
+                try:
+                    ret_value = self.__dict__[dict_key][dict_key_2]
+                except KeyError:
+                    ret_value = alternative_return_value
+                if dict_key_3 is not None:
+                    #Third key passed in
+                    try:
+                        ret_value = self.__dict__[dict_key][dict_key_2][dict_key_3]
+                    except KeyError:
+                        ret_value = alternative_return_value
+        #return it
+        return ret_value
 
     #=====================================================================
     #
@@ -539,10 +606,14 @@ Goals: %s
         #Now get the combined values of the averages for all goals
         combined_goal_average = [entity_goals[goal]['closeness_average'] for \
             goal in entity_goals]
+        
         #Get sum of the combined goal average
         combined_goal_average = sum(combined_goal_average)
         #Now we need to divide 100 by this so we can assign proper values
         #   for the 'weight' each goal has, percentage wise, out of 100
+        if combined_goal_average == 0:
+            combined_goal_average = 100.0
+
         goal_value_modifier = 100.0 / combined_goal_average
         #Finally, set the 'priority', or a weight, for each goal based on this 
         #   modifier and it's previous closeness averages
@@ -585,6 +656,7 @@ Goals: %s
                 axis=True,
                 grid=True,
                 dots=5)
+            '''
             #Bar plot
             CairoPlot.vertical_bar_plot(
                 'cairo_output/self_bar_plot.png', 
@@ -603,7 +675,7 @@ Goals: %s
                 data=self.persona,
                 width=800,
                 height=600)
-
+            '''
 
         #--------------------------------
         #Print scattor plot with other entity
@@ -635,11 +707,45 @@ Goals: %s
                 dots=5)
             #Scatter chart
             CairoPlot.scatter_plot(
-                'cairo_output/entity_comparison_scatter_plot.png', 
+                'cairo_output/entity_comparison_scatter_plot_persona.png', 
                 data={
                     'similarity = %s' % (
-                        self.get_similarity(other_entity)): [(self.persona[i],
+                        self.get_similarity_persona(other_entity)): [(self.persona[i],
                             other_entity.persona[i]) for i in attribute_list],
+                },
+                series_colors='blue_darkblue',
+                series_legend=True,
+                width=800,
+                height=600,
+                y_bounds = (
+                    Entity.MIN_PERSONA_ATTRIBUTE_VALUE,
+                    Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                x_bounds = (
+                    Entity.MIN_PERSONA_ATTRIBUTE_VALUE,
+                    Entity.MAX_PERSONA_ATTRIBUTE_VALUE),
+                axis=True,
+                dots=5,
+                discrete=True,
+                grid=True,)
+
+            #Goals
+            #Get persona list that both entities share
+            attribute_list = []
+            for i in self.goals:
+                attribute_list.append(i)
+            for i in other_entity.goals:
+                attribute_list.append(i)
+            CairoPlot.scatter_plot(
+                'cairo_output/entity_comparison_scatter_plot_goals.png', 
+                data={
+                    'similarity = %s' % (
+                        self.get_similarity_goals(other_entity)): [(
+                            self.get_attribute_value(
+                                'goals', i, 'closeness_average',
+                                alternative_return_value=0),
+                            other_entity.get_attribute_value(
+                                'goals', i, 'closeness_average',
+                                alternative_return_value=0)) for i in attribute_list],
                 },
                 series_colors='blue_darkblue',
                 series_legend=True,
@@ -690,35 +796,84 @@ Goals: %s
 
     #=====================================================================
     #
-    #   compare this entity with another
+    #   get_persona_similairty
+    #   ----------------------
+    #   This returns a value that represents the similarity of the two 
+    #   entities based on their persona
     #
     #=====================================================================
-    def get_similarity(self, other_entity=None):
-        '''get_similarity(self, other_entity)
+    def get_similarity(self,
+        other_entity=None,
+        dict_key_1='persona',
+        dict_key_2=None,
+        dict_key_3=None,
+        values_exist_for_both=True):
+        '''get_similarity(self, 
+            other_entity,dict_key_1, dict_key_2,dict_key_3,
+            values_exist_for_both)
         ---------------------------------
         This function takes in itself and other_entity (an Entity object). It
         uses Pearson correlation to determine how similar this an another 
-        entity are.  1 is perfectly similar, 0 is not at all'''
+        entity are based on their goals.  1 is perfectly similar, 0 is not at all.
+        
+        It also takes in 3 dict keys, which are used to specify what attributes
+        of the entity we should compare. The values_exist_for_both parameter
+        specifies if values MUST exist for both entities before checking (
+        this is required for persona, but not for goals)'''
         if other_entity is None:
             return 'Other Entity must be provided'
 
-        #Get attributes shared by both entities (should be every attribute now,
-        #   but certain entities may lack attributes in the future)
-        attribute_list = {}
-        for i in self.persona:
-            if i in other_entity.persona:
-                attribute_list[i] = 1
-            
-        #Get sum of all preferences for both entities
-        ent1_sum = sum([self.persona[i] for i in attribute_list])
-        ent2_sum = sum([other_entity.persona[i] for i in attribute_list])
+        #TODO: Should we use closeness_average or priority?
+
+        #Get ALL the goals shared between the two entities.  We do this because
+        #   if entities do not have the same goals, they are not as similar, so we
+        #   DO need to take into account goals that entities do not share.
+        #If an entity does not have a goal the other entity does, the value will be
+        #   stored as 0.  This makes sense too - if an entity has some goal X that
+        #   has a very low closeness average, it's almost like not have the goal
+        #TODO: Does this give invalid results though?  If entity A has one goal
+        #   with a really high priority, but entity B has 10 goals with 10% 
+        #   priority each, does it ruin the results?
+    
+        #
+        if values_exist_for_both is True:
+            attribute_list = {}
+            for i in self.persona:
+                if i in other_entity.persona:
+                    attribute_list[i] = 1
+        else:
+            attribute_list = []
+            for i in self.goals:
+                attribute_list.append(i)
+            for i in other_entity.goals:
+                attribute_list.append(i)
+
+        #Get sum of values for both entities
+        ent1_sum = sum([self.get_attribute_value(
+            dict_key_1, i, dict_key_3, 
+            alternative_return_value=0) for i in attribute_list])
+        ent2_sum = sum([other_entity.get_attribute_value(
+            dict_key_1, i, dict_key_3,
+            alternative_return_value=0) for i in attribute_list])
     
         #Sum up the squares
-        ent1_sum_sq = sum([pow(self.persona[i],2) for i in attribute_list])
-        ent2_sum_sq = sum([pow(other_entity.persona[i],2) for i in attribute_list])
+        ent1_sum_sq = sum([pow(self.get_attribute_value(
+            dict_key_1, i, dict_key_3, 
+            alternative_return_value=0) 
+            ,2) for i in attribute_list])
+
+        ent2_sum_sq = sum([pow(other_entity.get_attribute_value(
+            dict_key_1, i, dict_key_3, 
+            alternative_return_value=0)
+            ,2) for i in attribute_list])
 
         #Sum the products
-        product_sum = sum([self.persona[i] * other_entity.persona[i] \
+        product_sum = sum([self.get_attribute_value(
+            dict_key_1, i, dict_key_3, 
+            alternative_return_value=0) \
+            *  other_entity.get_attribute_value(
+            dict_key_1, i, dict_key_3, 
+            alternative_return_value=0)\
             for i in attribute_list])
 
         #Calculate the Pearson score
@@ -728,8 +883,70 @@ Goals: %s
             * (ent2_sum_sq - pow(ent2_sum,2) / attr_len))
 
         if pearson_den == 0:
-            return 0
+            if pearson_numerator == 0:
+                #If both values are 0, it means everything is exactly the same
+                #   so return 1
+                return 1
+            else:
+                return 0
         else:
             pearson_value = pearson_numerator / pearson_den
             return pearson_value
 
+    #-------------------------------------------------------------------------
+    #get persona similarity
+    #-------------------------------------------------------------------------
+    def get_similarity_persona(self, other_entity=None):
+        '''get_similarity_persona(self, other_entity)
+        ---------------------------------
+        this function takes in itself and other_entity (an entity object). it
+        uses pearson correlation to determine how similar this an another 
+        entity are based on persona.  1 is perfectly similar, 0 is not at all'''
+        return self.get_similarity(
+            other_entity=other_entity,
+            dict_key_1='persona',)
+    
+    #-------------------------------------------------------------------------
+    #get stat similarity
+    #-------------------------------------------------------------------------
+    def get_similarity_stats(self, other_entity=None):
+        '''get_similarity_persona(self, other_entity)
+        ---------------------------------
+        this function takes in itself and other_entity (an entity object). it
+        uses pearson correlation to determine how similar this an another 
+        entity are based on persona.  1 is perfectly similar, 0 is not at all'''
+        return self.get_similarity(
+            other_entity=other_entity,
+            dict_key_1='stats')
+
+    #-------------------------------------------------------------------------
+    #Get goal similarity
+    #-------------------------------------------------------------------------
+    def get_similarity_goals(self, other_entity=None):
+        '''get_similarity_goals(self, other_entity)
+        ---------------------------------
+        This function takes in itself and other_entity (an Entity object). It
+        uses Pearson correlation to determine how similar this an another 
+        entity are based on their goals.  1 is perfectly similar, 0 is not at all'''
+        #dict_key_2 is passed in from a loop, so we don't set or use it
+        return self.get_similarity(
+            other_entity=other_entity,
+            dict_key_1='goals',
+            dict_key_3='closeness_average',
+            values_exist_for_both=False)
+
+    '''====================================================================
+    
+    Interact with other entities
+
+    ======================================================================='''
+    def interact_with_entity(self, other_entity=None):
+        '''interact_with_entity(self, other_entity):
+        --------------------------------------------
+        Interacts with passed in entity.  
+        TODO: Should this really be a function call? Or maybe an action?'''
+        #Get the similarity, which will affect the interaction
+        similarity = self.get_similarity_persona(other_entity)
+
+        if similarity < 0:
+            return 'Not really happening'
