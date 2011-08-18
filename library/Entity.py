@@ -928,7 +928,8 @@ Goals: %s
         This function takes in itself and other_entity (an Entity object). It
         uses Pearson correlation to determine how similar this an another 
         entity are based on their goals.  1 is perfectly similar, 0 is not at all'''
-        #dict_key_2 is passed in from a loop, so we don't set or use it
+        #dict_key_2 is passed in from a loop in the function call itself, 
+        #   so we don't set or use it
         return self.get_similarity(
             other_entity=other_entity,
             dict_key_1='goals',
