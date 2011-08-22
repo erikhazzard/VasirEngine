@@ -161,6 +161,8 @@ class Entity(object):
             #Pick a gender at random
             self.restedness = 0
 
+        #TODO: States / Emotions? (e.g., sleeping, attacking, and angry, etc.)
+
         #=====================================================================
         #
         #   Entity Stats
@@ -951,3 +953,104 @@ Goals: %s
 
         if similarity < 0:
             return 'Not really happening'
+
+    '''====================================================================
+    
+    ACTIONS - General
+
+    ======================================================================='''
+    #Define general functions that multiple (or all) actions can or will use
+    def action_meets_requirements(self,
+        target=None,
+        requirements=None):
+        '''action_meets_requirements(self, target, requirements)
+        ------------------------------------------
+        This function takes in an optional target Entity (or object) and
+        checks to see if the entity matches the passed in requirements.  
+        If it does, it returns True - otherwise, it returns false'''
+        #If this action has no requirements, return True
+        if requirements is None:
+            return True
+        
+        #Set the taget entity.  If 'target' is not passed in, we use self
+        if target is None:
+            target_to_check = self
+        elif target is not None:
+            target_to_check = target
+
+        #Assume the requirements are met.  If we encounter something
+        #   that doesn't meet requirements, set this as False and return
+        meets_requirements = True
+   
+        #Now, check for requirements.  The target_to_check could be either
+        #   an entity, object, or location, so we need to do different
+        #   checks depending on the target type
+        #-------------------------------
+        #ENTITY Check
+        #--------------------------------
+        if isinstance(target_to_check, Entity):
+            for requirement in requirements:
+                #If the current requirement object is a dictionary
+                if isinstance(requirements[requirement], dict):
+                    #Loop through each item in the current requirement dict
+                    for item in requirements[requirement]:
+                        #--------------------
+                        #Check for min and max values
+                        #--------------------
+                        if 'min' in item or 'max' in item:
+                            #Min or max values are provided, so check on the
+                            #   supplied value
+                            if 'min' in item:
+                                #Make sure to remove the min_ text
+                                if target_to_check.__dict__[requirement][item.replace(
+                                        'min', '').replace('_', '')] \
+                                    < requirements[requirement][item]:
+                                    meets_requirements = False
+                                    break
+                            elif 'max' in item:
+                                #Make sure to remove the max_ text
+                                if target_to_check.__dict__[requirement][item.replace(
+                                        'max', '').replace('_','')] \
+                                    > requirements[requirement][item]:
+                                    meets_requirements = False
+                                    break
+
+                        #--------------------
+                        #Min / max not specified, so assume min
+                        #--------------------
+                        elif 'min' not in item and 'max' not in item:
+                            #There is no min or max, so assume it's a minimum
+                            #   value
+                            if target_to_check.__dict__[requirement][item] \
+                                < requirements[requirement][item]:
+                                meets_requirements = False
+                                break
+
+        return meets_requirements
+
+
+
+    '''====================================================================
+    
+    Actions
+
+    ======================================================================='''
+    #Actions are events that entities perform to help them accomplish goals.
+    #   Most actions have a source and target entity (or object or location),
+    #   requirements that must be met to perform the action, and effects the
+    #   action has on other entities (or objects or locations)
+    def converse(self, 
+        target):
+        '''converse(self, target)
+        -------------------------
+        Takes in a required target Entity.  The result of the conversation
+        will depend on both Entity's persona'''
+        #--------------------------------
+        #REQUIREMENTS
+        #--------------------------------
+        #Define requirements Entity must have to preform this action
+        requirements = {
+            'persona': {
+            
+            },
+        }
