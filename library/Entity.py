@@ -421,6 +421,7 @@ Money: %s
 Stats: %s
 Persona: %s
 Goals: %s
+Network: %s
         ''' % (
         self.get_id(),
         self.get_name(),
@@ -429,6 +430,7 @@ Goals: %s
         self.stats,
         self.persona,
         self.print_goals(),
+        self.network,
         )
     #=====================================================================
     #
@@ -1028,7 +1030,71 @@ Goals: %s
 
         return meets_requirements
 
+    #perform_effects affects the passed in effects on the passed in target
+    def action_perform_effects(self,
+        target=None,
+        effects=None):
+        '''action_perform_effects(self, target, effects)
+        ------------------------------------------
+        This function takes in an optional target Entity (or object) and
+        performs the passed in effects.'''
+        #If this action has no effects, return True
+        if effects is None:
+            return True
+        
+        #Set the taget entity.  If 'target' is not passed in, we use self
+        if target is None:
+            target_to_use= self
+        elif target is not None:
+            target_to_use = target
 
+        #Now, perform the effects of the action
+        #-------------------------------
+        #ENTITY Check
+        #--------------------------------
+        #Do specific things if the passed in target is an entity
+        if isinstance(target_to_use, Entity):
+            for effect in effects:
+                #------------------------
+                #If the current requirement object is a dictionary, 
+                #   simply add the provided values
+                #------------------------
+                if isinstance(effects[effect], dict):
+                    #Loop through each item in the current requirement dict
+                    for item in effects[effects]:
+                        target_to_use.__dict__[requirement][item] \
+                            += effects[effect][item]
+                #------------------------
+                #If the current item is 'network', we need to update
+                #   the Entity's network with the Entity provided and update
+                #   the value associated with that Entity
+                #------------------------
+                elif effect == 'network':
+                    #The network will always be an array, but it may also be 
+                    #   an array of arrays containing multiple Entitys to update
+                    for network_items in effects[effect]:
+                        #The first item will always be either an Entity, or a 
+                        #   List
+                        if isinstance(network_items, Entity):
+                            #If the first item is an Entity, wrap it in a list
+                            network_items = [ effects[effect][network_items] ]
+
+                        #Now this should always occur
+                        if isinstance(network_items, list):
+                            try:
+                                #Update THIS Entity's network
+                                target_to_use.network[
+                                    network_items[0].get_id()][
+                                    'value'] += network_items[1]
+                            except KeyError:
+                                #Entity is not in this entity's network
+                                target_to_use.network[
+                                    network_items[0].get_id()] = {
+                                        'entity': network_items[0],
+                                        'value': network_items[1]}
+
+        #We're done here
+        return True
 
     '''====================================================================
     
@@ -1040,17 +1106,71 @@ Goals: %s
     #   requirements that must be met to perform the action, and effects the
     #   action has on other entities (or objects or locations)
     def converse(self, 
-        target):
+        target=None):
         '''converse(self, target)
         -------------------------
         Takes in a required target Entity.  The result of the conversation
         will depend on both Entity's persona'''
+        if target is None:
+            return 'Cannot converse without a target Entity'
         #--------------------------------
         #REQUIREMENTS
         #--------------------------------
         #Define requirements Entity must have to preform this action
         requirements = {
-            'persona': {
-            
+            #Define the source (this entity's) requirements for this action
+            'source': {
+                'persona': {
+                    'extraversion_min': -80,
+                    'agreeableness_min': -50,
+                },
+            },
+            'target': {
+                'persona': {
+                    'extraversion_min': -80, 
+                    'agreeableness_min': -50,
+                },
             },
         }
+
+        #--------------------------------
+        #Effects
+        #--------------------------------
+        #effects is an array of dictionary objects containing the effects
+        #   this action has.  Each effect contains a target, which can be
+        #   an entity / object / location, etc., along with persona (if
+        #   Entity) and other effects
+        effects = {
+            #First effect affects source
+            #----------------------------
+            'source': {
+                'network': [ [target, 0] ],
+            },
+            #Second effect affects target
+            #----------------------------
+            'target': {
+                'network': [ [self, 0] ],
+            }
+        }
+
+        #Update the 'network' value of the effect
+        #   First, get the distance between the extraversion and agreeableness
+        #   values
+        extraversion_dist = abs(self.persona[
+            'extraversion'] \
+                - target.persona[
+            'extraversion']) 
+
+        agreeableness_dist = abs(self.persona[
+            'agreeableness'] \
+            - target.persona[
+            'agreeableness']) 
+
+
+        total_dist = abs(extraversion_dist + agreeableness_dist) / 2.0
+
+        #   For this entity, update value of the target entity's network effect
+        effects['source']['network'][0][1] = total_dist 
+        effects['target']['network'][0][1] = total_dist 
+
+        self.action_perform_effects(target=self, effects=effects['source'])
