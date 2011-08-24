@@ -430,7 +430,7 @@ Network: %s
         self.stats,
         self.persona,
         self.print_goals(),
-        self.network,
+        self.print_network(),
         )
     #=====================================================================
     #
@@ -459,8 +459,31 @@ Network: %s
                 goal, self.goals[goal]['priority'],
             )
         return goal_string
+    def print_goals(self):
+        '''print_goals(self):
+        ---------------------------------
+        Prints the goals in an easier to read way, useful for __repr__'''
+        goal_string = ''
+        for goal in self.goals:
+            goal_string += '\t%s: %s \n' % (
+                goal, self.goals[goal]['priority'],
+            )
+        return goal_string
+    
+    def print_network(self):
+        '''print_network(self):
+        ---------------------------------
+        Prints the network in an easier to read way, useful for __repr__'''
+        network_string = ''
+        for network in self.network:
+            network_string += '\t%s: %s \n' % (
+                network, self.network[network]['value']
+            )
+        return network_string
 
-
+    #-------------------------------------------------------------------------
+    #Utility Functions
+    #-------------------------------------------------------------------------
     def get_attribute_value(self,
         dict_key=None, 
         dict_key_2=None,
@@ -1166,11 +1189,20 @@ Network: %s
             - target.persona[
             'agreeableness']) 
 
-
+        #Setup value to adjust the Entities' network value by
         total_dist = abs(extraversion_dist + agreeableness_dist) / 2.0
+
+        #Randomize the value a bit, so the conversation doesn't always add the
+        #   same value
+        #Use -total_dist / 2 as min, +total_dist / 2 as max
+        #TODO: Think about a better way to do this...
+        total_dist = random.randint(
+            (int((total_dist * -1) / 2)),
+            (int(total_dist)))
 
         #   For this entity, update value of the target entity's network effect
         effects['source']['network'][0][1] = total_dist 
         effects['target']['network'][0][1] = total_dist 
 
         self.action_perform_effects(target=self, effects=effects['source'])
+        self.action_perform_effects(target=target, effects=effects['target'])
