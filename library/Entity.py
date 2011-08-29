@@ -19,6 +19,9 @@ import random
 import Race
 import Goals
 
+#Actions Entity will inherit / can perform 
+import Action
+
 #Third party
 import cairo_plot_new.cairoplot as CairoPlot
 import cairo
@@ -27,7 +30,7 @@ import cairo
 CLASS DEFINITIONS
 
 ============================================================================="""
-class Entity(object):
+class Entity(Action.Action):
     '''Entity Class
     -------------------------------------
     The Entity class controls all the logic for creating and interacting with 
@@ -997,6 +1000,7 @@ Network: %s
 
     ======================================================================='''
     #Define general functions that multiple (or all) actions can or will use
+    #TODO: Fix
     def action_meets_requirements(self,
         target=None,
         requirements=None):
@@ -1082,19 +1086,25 @@ Network: %s
         #--------------------------------
         #Do specific things if the passed in target is an entity
         for target in effects:
-            target_to_use = effects[target]['entity']
+            target_to_use = effects[target]['target']
 
+            #Do specific things if the passed in target is an entity
             if isinstance(target_to_use, Entity):
-                for effect in effects:
+                for effect in effects[target]:
+
+                    #If effect is 'target', continue on with the loop
+                    if effect == 'target':
+                        continue
+
                     #------------------------
                     #If the current requirement object is a dictionary, 
                     #   simply add the provided values
                     #------------------------
-                    if isinstance(effects[effect], dict):
-                        #Loop through each item in the current requirement dict
-                        for item in effects[effects]:
-                            target_to_use.__dict__[requirement][item] \
-                                += effects[effect][item]
+                    if isinstance(effects[target][effect], dict):
+                        #Loop through each item in the current dict
+                        for item in effects[target][effect]:
+                            target_to_use.__dict__[effect][item] \
+                                += effects[target][effect][item]
                     #------------------------
                     #If the current item is 'network', we need to update
                     #   the Entity's network with the Entity provided and update
@@ -1103,12 +1113,12 @@ Network: %s
                     elif effect == 'network':
                         #The network will always be an array, but it may also be 
                         #   an array of arrays containing multiple Entitys to update
-                        for network_items in effects[effect]:
+                        for network_items in effects[target][effect]:
                             #The first item will always be either an Entity, or a 
                             #   List
                             if isinstance(network_items, Entity):
                                 #If the first item is an Entity, wrap it in a list
-                                network_items = [ effects[effect][network_items] ]
+                                network_items = [ effects[target][effect][network_items] ]
 
                             #Now this should always occur
                             if isinstance(network_items, list):
@@ -1127,109 +1137,3 @@ Network: %s
         #We're done here
         return True
 
-    '''====================================================================
-    
-    Actions
-
-    ======================================================================='''
-    #Actions are events that entities perform to help them accomplish goals.
-    #   Most actions have a source and target entity (or object or location),
-    #   requirements that must be met to perform the action, and effects the
-    #   action has on other entities (or objects or locations)
-    def converse(self, 
-        target=None):
-        '''converse(self, target)
-        -------------------------
-        Takes in a required target Entity.  The result of the conversation
-        will depend on both Entity's persona'''
-        if target is None:
-            return 'Cannot converse without a target Entity'
-        #--------------------------------
-        #REQUIREMENTS
-        #--------------------------------
-        #Define requirements Entity must have to preform this action
-        requirements = {
-            #Define the source (this entity's) requirements for this action
-            'source': {
-                'persona': {
-                    'extraversion_min': -80,
-                    'agreeableness_min': -50,
-                },
-            },
-            'target': {
-                'persona': {
-                    'extraversion_min': -80, 
-                    'agreeableness_min': -50,
-                },
-            },
-        }
-
-        #--------------------------------
-        #Effects
-        #--------------------------------
-        #effects is an array of dictionary objects containing the effects
-        #   this action has.  Each effect contains a target, which can be
-        #   an entity / object / location, etc., along with persona (if
-        #   Entity) and other effects
-        effects = {
-            #First effect affects source
-            #----------------------------
-            'source': {
-                'entity': self,
-                'network': [ [target, 0] ],
-            },
-            #Second effect affects target
-            #----------------------------
-            'target': {
-                'target': target,
-                'network': [ [self, 0] ],
-            }
-        }
-
-        #Update the 'network' value of the effect
-        #   First, get the distance between the extraversion and agreeableness
-        #   values
-        extraversion_dist = abs(self.persona[
-            'extraversion'] \
-                - target.persona[
-            'extraversion']) 
-
-        agreeableness_dist = abs(self.persona[
-            'agreeableness'] \
-            - target.persona[
-            'agreeableness']) 
-
-        #Setup value to adjust the Entities' network value by
-        total_dist = abs(extraversion_dist + agreeableness_dist) / 2.0
-
-        #Randomize the value a bit, so the conversation doesn't always add the
-        #   same value
-        #Use -total_dist / 2 as min, +total_dist / 2 as max
-        #TODO: Think about a better way to do this...
-        total_dist = random.randint(
-            (int((total_dist * -1) / 2)),
-            (int(total_dist)))
-
-        #Multiple total_dist by the combined similarity values shared
-        #   between the two Entities
-        temp_total = abs(
-            total_dist * self.get_similarity_total(target))
-
-        #If total_dist was below 0, then multiple the temp_total
-        #   by negative 1 (It's possible the total_dist AND
-        #   their similarity rankings could be negative, which
-        #   would result in a positive
-        if total_dist < 0:
-            temp_total *= -1
-
-        #Set total_dist as the temp_total (needed the above intermediate
-        #   step to check if it is a negative or positive value
-        total_dist = temp_total
-
-        #   For this entity, update value of the target entity's network effect
-        effects['source']['network'][0][1] = total_dist 
-        effects['target']['network'][0][1] = total_dist 
-
-        self.action_perform_effects(target=self, effects=effects)
-        #self.action_perform_effects(target=self, effects=effects['source'])
-        #self.action_perform_effects(target=target, effects=effects['target'])
