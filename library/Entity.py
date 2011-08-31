@@ -64,20 +64,6 @@ class Entity(Action.Action):
         default attributes.  Init sets up the entity's attributes and
         other initialization processes'''
         #=====================================================================
-        #   Entity ID
-        #=====================================================================
-        #Generate a random ID.  TODO: Use hash?
-        self.id = 'entity_%s_%s' % (
-            #First parameter is the current count of how many entityies have 
-            #   been created
-            Entity._entity_created_count,
-            #Second parameters is a more or less random string
-            ''.join([random.choice(
-            'abcdefghijklmnopqrstuvwxyz0123456789'
-            ) for i in \
-            range(18)]))
-    
-        #=====================================================================
         #
         #   Entity Description
         #
@@ -87,6 +73,17 @@ class Entity(Action.Action):
             self.name = kwargs['name']
         except KeyError:
             self.name = self.generate_name()
+
+        #=====================================================================
+        #   Entity ID
+        #=====================================================================
+        #Generate a random ID.  TODO: Use hash?
+        self.id = 'entity_%s_%s' % (
+            #First parameter is the current count of how many entityies have 
+            #   been created
+            Entity._entity_created_count,
+            #And their name
+            self.name,)
 
         #=====================================================================
         #   Characteristics
@@ -336,19 +333,16 @@ class Entity(Action.Action):
 
         #=====================================================================
         #
-        #   History (Memory / events that have occured to entity)
+        #   Memory (actions that have occured to entity)
         #
         #=====================================================================
         #
-        #   The entity must keep track of all events it has experienced, i.e.
+        #   The entity must keep track of all actions it has experienced, i.e.
         #   have a sort of memory.  Certain events may affect personality 
         #   attributes or relationships with other entities.  
         #   
-        #   There is an Storeme (event) class which events derive from, and instances of
-        #   the Storeme class are stored in a list here
-        #
         #--------------------------------
-        self.history = []
+        self.memory = []
 
         #=====================================================================
         #   Entity's Network
@@ -426,8 +420,8 @@ Persona: %s
 Goals: %s
 Network: %s
         ''' % (
-        self.get_id(),
-        self.get_name(),
+        self.id,
+        self.name,
         self.gender[1],
         self.money,
         self.stats,
@@ -442,16 +436,6 @@ Network: %s
     #   Functions whose purpose is to get various attributes
     #
     #=====================================================================
-    def get_id(self):
-        '''get_id(self)
-        ---------------------------------
-        Returns the ID of the entity'''
-        return self.id
-    def get_name(self):
-        '''get_name(self)
-        ---------------------------------
-        Returns the name of the entity'''
-        return self.name
     def print_goals(self):
         '''print_goals(self):
         ---------------------------------
@@ -978,162 +962,9 @@ Network: %s
             + self.get_similarity_persona(other_entity=other_entity) 
         ) / 2)
 
-    '''====================================================================
-    
-    Interact with other entities
-
-    ======================================================================='''
-    def interact_with_entity(self, other_entity=None):
-        '''interact_with_entity(self, other_entity):
-        --------------------------------------------
-        Interacts with passed in entity.  
-        TODO: Should this really be a function call? Or maybe an action?'''
-        #Get the similarity, which will affect the interaction
-        similarity = self.get_similarity_persona(other_entity)
-
-        if similarity < 0:
-            return 'Not really happening'
 
     '''====================================================================
     
     ACTIONS - General
 
     ======================================================================='''
-    #Define general functions that multiple (or all) actions can or will use
-    #TODO: Fix
-    def action_meets_requirements(self,
-        target=None,
-        requirements=None):
-        '''action_meets_requirements(self, target, requirements)
-        ------------------------------------------
-        This function takes in an optional target Entity (or object) and
-        checks to see if the entity matches the passed in requirements.  
-        If it does, it returns True - otherwise, it returns false'''
-        #If this action has no requirements, return True
-        if requirements is None:
-            return True
-        
-        #Set the taget entity.  If 'target' is not passed in, we use self
-        if target is None:
-            target_to_check = self
-        elif target is not None:
-            target_to_check = target
-
-        #Assume the requirements are met.  If we encounter something
-        #   that doesn't meet requirements, set this as False and return
-        meets_requirements = True
-   
-        #Now, check for requirements.  The target_to_check could be either
-        #   an entity, object, or location, so we need to do different
-        #   checks depending on the target type
-        #-------------------------------
-        #ENTITY Check
-        #--------------------------------
-        if isinstance(target_to_check, Entity):
-            for requirement in requirements:
-                #If the current requirement object is a dictionary
-                if isinstance(requirements[requirement], dict):
-                    #Loop through each item in the current requirement dict
-                    for item in requirements[requirement]:
-                        #--------------------
-                        #Check for min and max values
-                        #--------------------
-                        if 'min' in item or 'max' in item:
-                            #Min or max values are provided, so check on the
-                            #   supplied value
-                            if 'min' in item:
-                                #Make sure to remove the min_ text
-                                if target_to_check.__dict__[requirement][item.replace(
-                                        'min', '').replace('_', '')] \
-                                    < requirements[requirement][item]:
-                                    meets_requirements = False
-                                    break
-                            elif 'max' in item:
-                                #Make sure to remove the max_ text
-                                if target_to_check.__dict__[requirement][item.replace(
-                                        'max', '').replace('_','')] \
-                                    > requirements[requirement][item]:
-                                    meets_requirements = False
-                                    break
-
-                        #--------------------
-                        #Min / max not specified, so assume min
-                        #--------------------
-                        elif 'min' not in item and 'max' not in item:
-                            #There is no min or max, so assume it's a minimum
-                            #   value
-                            if target_to_check.__dict__[requirement][item] \
-                                < requirements[requirement][item]:
-                                meets_requirements = False
-                                break
-
-        return meets_requirements
-
-    #perform_effects affects the passed in effects on the passed in target
-    def action_perform_effects(self,
-        target=None,
-        effects=None):
-        '''action_perform_effects(self, target, effects)
-        ------------------------------------------
-        This function takes in an optional target Entity (or object) and
-        performs the passed in effects.'''
-        #If this action has no effects, return True
-        if effects is None:
-            return True
-
-        #-------------------------------
-        #ENTITY Check
-        #--------------------------------
-        #Do specific things if the passed in target is an entity
-        for target in effects:
-            target_to_use = effects[target]['target']
-
-            #Do specific things if the passed in target is an entity
-            if isinstance(target_to_use, Entity):
-                for effect in effects[target]:
-
-                    #If effect is 'target', continue on with the loop
-                    if effect == 'target':
-                        continue
-
-                    #------------------------
-                    #If the current requirement object is a dictionary, 
-                    #   simply add the provided values
-                    #------------------------
-                    if isinstance(effects[target][effect], dict):
-                        #Loop through each item in the current dict
-                        for item in effects[target][effect]:
-                            target_to_use.__dict__[effect][item] \
-                                += effects[target][effect][item]
-                    #------------------------
-                    #If the current item is 'network', we need to update
-                    #   the Entity's network with the Entity provided and update
-                    #   the value associated with that Entity
-                    #------------------------
-                    elif effect == 'network':
-                        #The network will always be an array, but it may also be 
-                        #   an array of arrays containing multiple Entitys to update
-                        for network_items in effects[target][effect]:
-                            #The first item will always be either an Entity, or a 
-                            #   List
-                            if isinstance(network_items, Entity):
-                                #If the first item is an Entity, wrap it in a list
-                                network_items = [ effects[target][effect][network_items] ]
-
-                            #Now this should always occur
-                            if isinstance(network_items, list):
-                                try:
-                                    #Update THIS Entity's network
-                                    target_to_use.network[
-                                        network_items[0].get_id()][
-                                        'value'] += network_items[1]
-                                except KeyError:
-                                    #Entity is not in this entity's network
-                                    target_to_use.network[
-                                        network_items[0].get_id()] = {
-                                            'entity': network_items[0],
-                                            'value': network_items[1]}
-
-        #We're done here
-        return True
-
