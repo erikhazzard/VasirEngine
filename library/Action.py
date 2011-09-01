@@ -79,10 +79,23 @@ class Action(object):
     }
 
     @classmethod
-    def get_action(cls, source=None, target=None):
-        return Action(**Action._ACTIONS['converse']['function'](
-            source=source,
-            target=target))
+    def get_action(cls, source=None, target=None, action_key=None):
+        '''get_action(cls, source, target, action_key)
+        ----------------------------------------------
+        Takes in a source, target, and action_key.  (cls is the base 'class'
+        variable that must be passed in for class methods).  
+        If no action_key is provided, an action will be generated.
+        If an action key IS provided, that action obect will be returned'''
+
+        if action_key is None:
+            return Action(**Action._ACTIONS['converse']['function'](
+                source=source,
+                target=target))
+        else:
+            return Action(**Action._ACTIONS[action_key]['function'](
+                source=source,
+                target=target,
+            ))
 
     def __init__(self,
         #--------------------------------

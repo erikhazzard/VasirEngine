@@ -40,9 +40,9 @@ class Entity(Action.Action):
     generate values'''
     #Keep a count of how many entities have been created
     _entity_created_count = 0
-    #_entity_objects will be a dict of all created entity objects, represented
+    #_entities will be a dict of all created entity objects, represented
     #   by their ID and the value being the object itself
-    _entity_objects = {}
+    _entities = {}
 
     #Store gender values
     GENDER = (
@@ -52,6 +52,7 @@ class Entity(Action.Action):
     DEFAULT_PERSONA_ATTRIBUTE_VALUE = 0
     MAX_PERSONA_ATTRIBUTE_VALUE = 100
     MIN_PERSONA_ATTRIBUTE_VALUE = -MAX_PERSONA_ATTRIBUTE_VALUE
+
     #=====================================================================
     #
     #   Entity Description
@@ -364,7 +365,7 @@ class Entity(Action.Action):
         #Example:
         #   self.network = {
         #       'entity_0_zxc42': {
-        #           'entity': Entity._entity_objects['entity_0_zxc42'],
+        #           'entity': Entity._entities['entity_0_zxc42'],
         #           'attitude': 129,
         #       }
         #   }
@@ -387,6 +388,25 @@ class Entity(Action.Action):
         #--------------------------------
         self.goals = self.get_goals()
 
+
+        #=====================================================================
+        #
+        #   Entity - Geographic Properties
+        #
+        #
+        #=====================================================================
+        #Store the position of the Entity.  Depending on how we generate
+        #   geography, this may change.  For now, we'll assume a three
+        #   deminsional cartesian space
+        #Store as x,y,z
+        #   TODO: For now, we'll always assume z is 0
+        #   TODO: Entities can't be directly on top of each other (occupy same
+        #   same space)
+        self.position = [
+            random.randint(0,10),
+            random.randint(0,10),
+            0]
+
         #=====================================================================
         #   Finalize Entity
         #=====================================================================
@@ -394,7 +414,7 @@ class Entity(Action.Action):
         Entity._entity_created_count += 1
 
         #Add this entity to the list of entities created
-        Entity._entity_objects[self.id] = self
+        Entity._entities[self.id] = self
 
 
     '''====================================================================
@@ -410,10 +430,14 @@ class Entity(Action.Action):
     #
     #=====================================================================
     def __repr__(self):
-        return '''
+        return '''< %s >''' % (self.id)
+
+    def print_info(self):
+        print '''
 ID: %s
 Name: %s
 Gender: %s
+Position: %s
 Money: %s
 Stats: %s
 Persona: %s
@@ -423,6 +447,7 @@ Network: %s
         self.id,
         self.name,
         self.gender[1],
+        self.position,
         self.money,
         self.stats,
         self.persona,
@@ -965,6 +990,39 @@ Network: %s
 
     '''====================================================================
     
-    ACTIONS - General
+    Geography Related
 
     ======================================================================='''
+    def get_nearest_entities(self):
+        '''get_nearest_entities(self)
+        ---------------------------------
+        This function gets the closet entities, geographically speaking'''
+        #Store distances between this entity and all others
+        distances = {}
+
+        #Loop through all the Entities to get their positions
+        #TODO: Optimize, we don't want to always loop through EVERYTHING
+        for entity in Entity._entities:
+            dist = math.sqrt(
+                math.pow((self.position[0] - Entity._entities[
+                    entity].position[0]), 2) + math.pow(
+                    (self.position[1] - Entity._entities[entity].position[1]),2)
+            )
+            distances[Entity._entities[entity].id] = dist
+
+        #Remove self from list
+        distances.pop(self.id)
+
+        #Get a list of entities, along with distance
+        sorted_list = sorted(distances, key=distances.get)
+
+        #Loop through list, turn each item in the list to a list containing
+        #   the Entity's ID and distance value
+        for i in range(len(sorted_list)):
+            sorted_list[i] = [
+                #Get actual entity object
+                Entity._entities[sorted_list[i]], 
+                #Add distance
+                distances[sorted_list[i]]]
+
+        return sorted_list

@@ -113,7 +113,9 @@ def converse(
 
     #Set total_dist as the temp_total (needed the above intermediate
     #   step to check if it is a negative or positive value
-    total_dist = temp_total
+    total_dist = int(temp_total)
+    if total_dist == 0:
+        total_dist = 1
 
     #   For this entity, update value of the target entity's network effect
     effects['source']['network'][0][1] = total_dist 
@@ -128,8 +130,3 @@ def converse(
         'effects':effects,
         'string_repr': 'Conversation',
     }
-
-    #source.action_perform_effects(target=source, effects=effects)
-
-    #self.action_perform_effects(target=self, effects=effects['source'])
-    #self.action_perform_effects(target=target, effects=effects['target'])
