@@ -479,17 +479,6 @@ Network: %s
                 goal, self.goals[goal]['priority'],
             )
         return goal_string
-
-    def print_goals(self):
-        '''print_goals(self):
-        ---------------------------------
-        Prints the goals in an easier to read way, useful for __repr__'''
-        goal_string = ''
-        for goal in self.goals:
-            goal_string += '\t%s: %s \n' % (
-                goal, self.goals[goal]['priority'],
-            )
-        return goal_string
     
     def print_network(self):
         '''print_network(self):
@@ -966,6 +955,7 @@ Network: %s
             other_entity=other_entity,
             dict_key_1='stats')
 
+
     #-------------------------------------------------------------------------
     #Get goal similarity
     #-------------------------------------------------------------------------
@@ -1064,14 +1054,22 @@ Network: %s
     Action Related
 
     ======================================================================='''
-    def get_action(self):
+    def get_action(self, 
+        action_key=None,
+        target=None):
         '''get_action(self)
         ----------------------------------------------
         Determines which action the Entity should perform.  Will return an
         Action object, but not actually perform the action'''
-        return Action.Action(**Action.Action._ACTIONS['converse']['function'](
-            source=self,
-            target=self.target))
+        #If no action key was passed in, use 'converse'
+        if action_key is None:
+            return Action.Action(**Action.Action._ACTIONS['converse']['function'](
+                source=self,
+                target=self.target))
+        else:
+            return Action.Action(**Action.Action._ACTIONS[action_key]['function'](
+                source=self,
+                target=target))
 
     def perform_action(self, action=None):
         '''perform_action(self, action, target)

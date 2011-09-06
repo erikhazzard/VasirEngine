@@ -67,7 +67,10 @@ class Action(object):
     _ACTIONS = {
         'converse': {
             'function': Actions.converse,
-        }
+        },
+        'move': {
+            'function': Actions.move,
+        },
     }
 
     '''ACTIONS_BY_GOALS
@@ -150,8 +153,8 @@ class Action(object):
         #Return a 'pretty version' of the action
         return '%s: %s to %s' % (
             self.string_repr,
-            self.source.id,
-            self.target.id,
+            self.source,
+            self.target,
         )
 
     '''====================================================================
@@ -268,6 +271,7 @@ class Action(object):
                         for item in self.effects[target][effect]:
                             target_to_use.__dict__[effect][item] \
                                 += self.effects[target][effect][item]
+
                     #------------------------
                     #If the current item is 'network', we need to update
                     #   the Entity's network with the Entity provided and update
@@ -296,6 +300,15 @@ class Action(object):
                                         network_items[0].id] = {
                                             'entity': network_items[0],
                                             'value': network_items[1]}
+
+                    #------------------------
+                    #If the current requirement object is position,
+                    #   update the entity's position.
+                    #TODO: This code really applies to ANY list or
+                    #   whatnot
+                    #------------------------
+                    elif effect == 'position':
+                        target_to_use.__dict__[effect] = self.effects[target][effect]
 
         #We're done here
         return True

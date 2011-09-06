@@ -1,25 +1,103 @@
-"""=============================================================================
+"""========================================================================
     Actions.py
     ------------
     Contains all possible actions.
 
     Actions are functions here.  When the action function gets called, it will
     create an Action object (from the Action class)  
-============================================================================="""
-"""=============================================================================
+==========================================================================="""
+"""========================================================================
 
 IMPORTS
 
-============================================================================="""
+==========================================================================="""
 import math
 import random
 import datetime
 
-"""=============================================================================
+"""=========================================================================
 
 ACTIONS
 
-============================================================================="""
+============================================================================"""
+"""=========================================================================
+
+ACTIONS - GEOGRAPHY RELATED
+
+============================================================================"""
+'''-------------------------------------------------------------------------
+    MOVE
+    ------------------------------------------------------------------------'''
+def move(
+    #Source is the source entity
+    source=None,
+    #Target must be a location
+    target=None):
+    '''move(self, target)
+    -------------------------
+    Takes in a required target Entity and a required target location.
+    The target location is expected to be a list (or tuple) of the desired
+    coordinate location to move to'''
+
+    if target is None:
+        return 'Cannot move to an undefined location'
+    if isinstance(target, list) is False and isinstance(target, tuple):
+        #TODO: Accept a coordinate object later...
+        return 'Must past in a list or tuple of coordinates'
+
+    #--------------------------------
+    #REQUIREMENTS
+    #--------------------------------
+    #No requirements to move. 
+    #TODO: Add in requirements? Must not be sleeping? Etc.?
+    requirements = None 
+
+    #--------------------------------
+    #Effects
+    #--------------------------------
+    #The goal of this action is to move the entity to a desired
+    #   position
+    #The entity can't just teleport though, so we need to make sure to move
+    #   the entity no more than (1,1) per move.  If we need to move the entity
+    #   more than once, we'll just call the entitiy's move function until
+    #   we've moved it to the desired position
+    
+    #Get current entity position
+    cur_position = source.position
+    
+    #The target is the desired position
+    #TODO: Make sure entity doesn't teleport
+    #TODO: Make sure target is legit coord pair (ex [2,4,0])
+    #TODO: Make sure target doesn't have z position != 0
+    new_position = target
+
+    effects = {
+        #Move this entity to the new_position
+        #----------------------------
+        'source': {
+            'target': source,
+            'position': new_position
+        },
+
+    }
+    #Return a dict of all the sources / effects, which will be used to
+    #   generate an Action object (in Action.py)
+    return {
+        'source':source,
+        'target':target,
+        'requirements':requirements,
+        'effects':effects,
+        'string_repr': 'Moved',
+    }
+
+"""=========================================================================
+
+ACTIONS - ENTITY INTERACTION RELATED
+
+============================================================================"""
+'''-------------------------------------------------------------------------
+    CONVERSE
+    ------------------------------------------------------------------------'''
 #Actions are events that entities perform to help them accomplish goals.
 #   Most actions have a source and target entity (or object or location),
 #   requirements that must be met to perform the action, and effects the
