@@ -30,7 +30,7 @@ import cairo
 CLASS DEFINITIONS
 
 ============================================================================="""
-class Entity(Action.Action):
+class Entity(object):
     '''Entity Class
     -------------------------------------
     The Entity class controls all the logic for creating and interacting with 
@@ -333,9 +333,7 @@ class Entity(Action.Action):
             self.randomize_persona()
 
         #=====================================================================
-        #
         #   Memory (actions that have occured to entity)
-        #
         #=====================================================================
         #
         #   The entity must keep track of all actions it has experienced, i.e.
@@ -371,9 +369,7 @@ class Entity(Action.Action):
         #   }
 
         #=====================================================================
-        #
         #   Mood / Emotional State
-        #
         #=====================================================================
         #The Entity's mood affects their persona values (temporarily).  Persona
         #   values affect how easily an Entity gets into a particular mood
@@ -408,6 +404,14 @@ class Entity(Action.Action):
             0]
 
         #=====================================================================
+        #   Target
+        #=====================================================================
+        #The entity's current target
+        #   Should be set either as None, a single Entity object, or a list
+        #   of Entities
+        self.target = None
+
+        #=====================================================================
         #   Finalize Entity
         #=====================================================================
         #Increase the _entity_created_count value
@@ -425,8 +429,6 @@ class Entity(Action.Action):
     #=====================================================================
     #
     #   Built-in overrides
-    #   ---------------------------------
-    #   Functions that overwrite or extend built in behavior
     #
     #=====================================================================
     def __repr__(self):
@@ -436,16 +438,23 @@ class Entity(Action.Action):
         print '''
 ID: %s
 Name: %s
+Target: %s
+
 Gender: %s
 Position: %s
 Money: %s
+
 Stats: %s
+
 Persona: %s
+
 Goals: %s
+
 Network: %s
         ''' % (
         self.id,
         self.name,
+        self.target,
         self.gender[1],
         self.position,
         self.money,
@@ -454,11 +463,10 @@ Network: %s
         self.print_goals(),
         self.print_network(),
         )
+
     #=====================================================================
     #
     #   getter functions
-    #   ---------------------------------
-    #   Functions whose purpose is to get various attributes
     #
     #=====================================================================
     def print_goals(self):
@@ -471,6 +479,7 @@ Network: %s
                 goal, self.goals[goal]['priority'],
             )
         return goal_string
+
     def print_goals(self):
         '''print_goals(self):
         ---------------------------------
@@ -493,9 +502,9 @@ Network: %s
             )
         return network_string
 
-    #-------------------------------------------------------------------------
-    #Utility Functions
-    #-------------------------------------------------------------------------
+    '''--------------------------------------------------------------------
+    Utility Functions
+    -----------------------------------------------------------------------'''
     def get_attribute_value(self,
         dict_key=None, 
         dict_key_2=None,
@@ -530,11 +539,11 @@ Network: %s
         #return it
         return ret_value
 
-    #=====================================================================
-    #
-    #   Get Goals
-    #
-    #=====================================================================
+    '''=====================================================================
+    
+       Get Goals
+    
+    ======================================================================='''
     def get_goals(self):
         '''get_goals(self)
         ---------------------------------
@@ -832,7 +841,6 @@ Network: %s
                 Entity.MIN_PERSONA_ATTRIBUTE_VALUE,
                 Entity.MAX_PERSONA_ATTRIBUTE_VALUE)
 
-
     #=====================================================================
     #
     #   get_persona_similairty
@@ -1026,3 +1034,63 @@ Network: %s
                 distances[sorted_list[i]]]
 
         return sorted_list
+
+    '''====================================================================
+    
+    Target Related
+
+    ======================================================================='''
+    def set_target(self, target=None):
+        '''set_target(self, target):
+        ----------------------------
+        Set's this entity's target to the passed in target. Can be
+        a list of targets, an individual target, or None (will clear target).
+        Can also be set as self.'''
+        self.target = target
+
+    def get_target(self):
+        '''get_target(self):
+        ----------------------------
+        This will get a target entity based on a variety of things, such
+            as nearby entities.'''
+        #TODO: Think more about this.  For now, just get nearest entity
+        try:
+            self.target = self.get_nearest_entities()[0][0]
+        except IndexError:
+            self.target = self
+
+    '''====================================================================
+    
+    Action Related
+
+    ======================================================================='''
+    def get_action(self):
+        '''get_action(self)
+        ----------------------------------------------
+        Determines which action the Entity should perform.  Will return an
+        Action object, but not actually perform the action'''
+        return Action.Action(**Action.Action._ACTIONS['converse']['function'](
+            source=self,
+            target=self.target))
+
+    def perform_action(self, action=None):
+        '''perform_action(self, action, target)
+        ----------------------------------------------
+        Takes in an action (could be either an Action object or
+            a key to use to grab an object based on the _ACTIONS
+            dict) and a target (can be either an entity object or
+            list of entities, or a location, item, etc).'''
+        if action is None:
+            #Get the action object
+            action = self.get_action()
+            #Perform the action
+            action.action_perform()
+
+        elif isinstance(action, Action.Action):
+            #If they passed in a valid action object, do the action
+            action.action_perform()
+        elif isinstance(action, list):
+            for i in range(len(action)):
+                action[i].action_perform()
+
+        print 'Performed %s' % (action)
