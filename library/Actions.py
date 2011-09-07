@@ -40,10 +40,16 @@ def move(
     coordinate location to move to'''
 
     if target is None:
-        return 'Cannot move to an undefined location'
-    if isinstance(target, list) is False and isinstance(target, tuple):
-        #TODO: Accept a coordinate object later...
-        return 'Must past in a list or tuple of coordinates'
+        print 'Cannot move to an undefined location'
+        return False 
+    if isinstance(target, list) is False and isinstance(target, tuple) is False:
+        #We can take an entity as a target and get the target entity's
+        #   position
+        try:
+            target = target.position
+        except AttributeError:
+            print 'Invalid position passed in'
+            return False
 
     #--------------------------------
     #REQUIREMENTS
@@ -69,7 +75,24 @@ def move(
     #TODO: Make sure entity doesn't teleport
     #TODO: Make sure target is legit coord pair (ex [2,4,0])
     #TODO: Make sure target doesn't have z position != 0
-    new_position = target
+    new_position = cur_position
+
+    #Check x
+    if cur_position[0] < target[0]:
+        new_position[0] += 1 
+    elif cur_position[0] > target[0]:
+        new_position[0] -= 1
+
+    #Check y
+    if cur_position[1] < target[1]:
+        new_position[1] += 1 
+    elif cur_position[1] > target[1]:
+        new_position[1] -= 1
+
+    #Check to see if we've moved the entity to the desired position.
+    #   If not, we need to move it again
+    if cur_position != target:
+        source.perform_action('move', target)
 
     effects = {
         #Move this entity to the new_position
@@ -110,7 +133,9 @@ def converse(
     Takes in a required target Entity.  The result of the conversation
     will depend on both Entity's persona'''
     if target is None:
-        return 'Cannot converse without a target Entity'
+        print 'Cannot converse without a target Entity'
+        return False
+
     #--------------------------------
     #REQUIREMENTS
     #--------------------------------
@@ -131,6 +156,21 @@ def converse(
         },
     }
 
+    #--------------------------------
+    #Position Check
+    #--------------------------------
+    #We must make sure the entities are within range of each other
+    #   We'll use a distance of 3 as the max
+    #Get distance between both entities
+    dist = math.sqrt(
+        math.pow((source.position[0] - target.position[0]), 
+            2) + math.pow(
+            (source.position[1] - target.position[1]),2)
+    )
+    if dist > 3.0:
+        print 'Entities out of range'
+        return False
+    
     #--------------------------------
     #Effects
     #--------------------------------

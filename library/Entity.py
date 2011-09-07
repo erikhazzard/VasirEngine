@@ -1054,41 +1054,49 @@ Network: %s
     Action Related
 
     ======================================================================='''
+    #TODO: General: Get rid of target parameter (use self.target)
+    #   (How to handle position / object / item as targets?)
     def get_action(self, 
-        action_key=None,
+        action_key='converse',
         target=None):
         '''get_action(self)
         ----------------------------------------------
         Determines which action the Entity should perform.  Will return an
         Action object, but not actually perform the action'''
-        #If no action key was passed in, use 'converse'
-        if action_key is None:
-            return Action.Action(**Action.Action._ACTIONS['converse']['function'](
-                source=self,
-                target=self.target))
-        else:
-            return Action.Action(**Action.Action._ACTIONS[action_key]['function'](
-                source=self,
-                target=target))
+        if target is None:
+            target = self.target
 
-    def perform_action(self, action=None):
+        return Action.Action._create_action(action_key, self, target)
+
+    def perform_action(self, action=None,
+        target=None):
         '''perform_action(self, action, target)
         ----------------------------------------------
         Takes in an action (could be either an Action object or
             a key to use to grab an object based on the _ACTIONS
             dict) and a target (can be either an entity object or
             list of entities, or a location, item, etc).'''
+
+        #Set target to self target if nothing is passed in
+        if target is None:
+            target = self.target
+
         if action is None:
             #Get the action object
             action = self.get_action()
-            #Perform the action
-            action.action_perform()
 
-        elif isinstance(action, Action.Action):
-            #If they passed in a valid action object, do the action
-            action.action_perform()
-        elif isinstance(action, list):
+        elif isinstance(action, str):
+            action = self.get_action(action, target)
+    
+        #Perform the action(s)
+        if not isinstance(action, list):
+            if isinstance(action, Action.Action):
+                action.perform()
+                print 'Performed %s' % (action)
+            else:
+                print 'Failed to perform action'
+
+        else:
             for i in range(len(action)):
-                action[i].action_perform()
-
-        print 'Performed %s' % (action)
+                if isinstance(action[i], Action.Action):
+                    action[i].perform()

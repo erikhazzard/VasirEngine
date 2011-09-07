@@ -83,6 +83,34 @@ class Action(object):
         #'goal': [ action_object1, action_object2 ]
     }
 
+    @classmethod
+    def _create_action(
+        cls,
+        action_key=None,
+        source=None,
+        target=None,):
+        '''_create_action:
+        ------------------
+        Class method which returns an Action object.  Used as a sort
+        of factory to create Action objects.  Takes in an action key (
+        which is used to get an action from the _ACTIONS dict), a source,
+        and optional target (when necessary)'''
+        #Get the parameters
+        action_params = Action._ACTIONS[action_key]['function'](
+            source=source,
+            target=target,
+        )
+
+        if isinstance(action_params, dict):
+            #Return an action object
+            return Action(**action_params)
+        else:
+            #If the action could NOT be created (the action itself returned
+            #   something other than a dict)
+            print 'Could not create action'
+            return False
+    
+
     def __init__(self,
         #--------------------------------
         #Source
@@ -232,8 +260,8 @@ class Action(object):
 
         return meets_requirements
 
-    def action_perform(self):
-        '''action_perform(self)
+    def perform(self):
+        '''perform(self)
         ------------------------------------------
         This function performs the action'''
         #If this action has no effects, return True

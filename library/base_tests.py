@@ -3,17 +3,15 @@ import Action
 
 a = Entity.Entity()
 b = Entity.Entity()
+
+print a.position, b.position
+
 print 'Entities created'
-a.get_target()
-target_action = a.get_action()
-print 'action got'
-a.perform_action(action=target_action)
-print 'action done'
-print a,b
-a.perform_action(action=target_action)
-print 'action done'
-print a,b
-a.perform_action(action=target_action)
-print 'action done'
-print a,b
-print a.print_info()
+a.perform_action('move', b)
+print 'moved'
+a.set_target(b)
+a.perform_action('converse')
+
+print a.get_nearest_entities()
+
+print a.position, b.position
