@@ -110,6 +110,7 @@ def move(
         'target':target,
         'requirements':requirements,
         'effects':effects,
+        'add_to_memory': False,
         'string_repr': 'Moved',
     }
 
@@ -168,8 +169,14 @@ def converse(
             (source.position[1] - target.position[1]),2)
     )
     if dist > 3.0:
-        print 'Entities out of range'
-        return False
+        #If distance is greater then 3, we need to move the entity
+        #   closer
+        if dist < 20.0: 
+            #Just make sure entity is TOO far away
+            source.perform_action('move', target)
+        else:
+            print 'Entities out of range'
+            return False
     
     #--------------------------------
     #Effects

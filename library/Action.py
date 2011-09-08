@@ -160,6 +160,11 @@ class Action(object):
         #]
 
         #--------------------------------
+        #Add this action to the entity's memory?
+        #--------------------------------
+        add_to_memory=True,
+
+        #--------------------------------
         #String representation of action
         #--------------------------------
         string_repr=None,
@@ -170,6 +175,8 @@ class Action(object):
         self.target = target
         self.requirements = requirements
         self.effects = effects
+        self.add_to_memory = add_to_memory
+
         self.string_repr = string_repr
 
     '''====================================================================
@@ -278,7 +285,8 @@ class Action(object):
             target_to_use = self.effects[target]['target']
 
             #Update this target's memory, adding this action object
-            target_to_use.memory.append(self)
+            if self.add_to_memory:
+                target_to_use.memory.append(self)
 
             #Do specific things if the passed in target is an entity
             if isinstance(target_to_use, Entity.Entity):
