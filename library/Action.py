@@ -33,44 +33,11 @@ class Action(object):
     which inheirt this Action class, along with keeping track of all Action
     objects which have been instantiated
     -------------------------------------
-    Actions are events that entities perform to help them accomplish goals.
-
-    The data structure is set up like:
-
-    #Source is the the entity (or possibly object) that is the source of
-    #   this action
-    SOURCE: Entity,
-
-    #Target describes the target of this action - be it an Entity or Object
-    TARGET: {} 
-
-    #Requirements specify the conditions needs to perform this action, if
-    #   any.  These are applied to the SOURCE described above
-    REQUIREMENTS: [{
-        'persona': {},
-        'stats': {},
-        etc.
-    }]
-
-    #Effects describes what will happen if the entity successfully performs
-    #   this action.
-    #   Each effect has a target (could be the source entity), and the 
-    #   attributes that get affected if the action is successfully performed
-    EFFECTS: [{'target': ____,
-            'persona': {},
-            'stats': {},
-            'money': X,
-            'restedness': X},
-            {} ]
-'''
+    Actions are events that entities perform to help them accomplish goals.'''
 
     _ACTIONS = {
-        'converse': {
-            'function': Actions.converse,
-        },
-        'move': {
-            'function': Actions.move,
-        },
+        'converse': Actions.converse_definition,
+        'move': Actions.move_definition,
     }
 
     '''ACTIONS_BY_GOALS

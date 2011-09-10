@@ -17,9 +17,22 @@ import datetime
 
 """=========================================================================
 
-ACTIONS
+ACTIONS - GLOBAL SETTINGS
 
 ============================================================================"""
+#POSSIBLE_TARGETS
+#----------------
+#This defines the possible targets that an action requires.  When the Entity
+#   is looking for an action to perform, and finds one, it needs to know what 
+#   target to pass into the function.  These strings represent the possible
+#   choices and direct the entity to chose their target accordingly
+POSSIBLE_TARGETS = {
+    'none': 'none',
+    'self': 'self', 
+    'entity': 'entity',
+    'location': 'location',
+    'item': 'item',
+}
 """=========================================================================
 
 ACTIONS - GEOGRAPHY RELATED
@@ -28,6 +41,9 @@ ACTIONS - GEOGRAPHY RELATED
 '''-------------------------------------------------------------------------
     MOVE
     ------------------------------------------------------------------------'''
+'''--------------------------------------
+    Function
+    -------------------------------------'''
 def move(
     #Source is the source entity
     source=None,
@@ -114,6 +130,13 @@ def move(
         'string_repr': 'Moved',
     }
 
+'''--------------------------------------
+    Function Definition
+    -------------------------------------'''
+move_definition = {
+    'function': move,
+    'target_required': POSSIBLE_TARGETS['location']
+}
 """=========================================================================
 
 ACTIONS - ENTITY INTERACTION RELATED
@@ -255,3 +278,11 @@ def converse(
         'effects':effects,
         'string_repr': 'Conversation',
     }
+
+'''--------------------------------------
+    Function Definition
+    -------------------------------------'''
+converse_definition = {
+    'function': converse,
+    'target_required': POSSIBLE_TARGETS['entity']
+}
