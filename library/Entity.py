@@ -464,6 +464,43 @@ Network: %s
         self.print_network(),
         )
 
+    def get_info_json(self):
+        '''get_info_json:
+        -----------------
+        Returns a JSON string containing the entity info, similar to print_info
+        but in a JSON friendly format'''
+        #Try to get target
+        if self.target is None:
+            target = 'undefined'
+        else:
+            target = "'%s'" % (self.target.id)
+
+        return '''({
+            id: '%s',
+            name: '%s',
+            target: %s,
+            gender: '%s',
+            position: [%s, %s, %s],
+            money: %s,
+            stats: %s,
+            persona: %s,
+            goals: %s,
+            network: %s
+        })''' % (
+            self.id,
+            self.name,
+            target,
+            self.gender[1],
+            self.position[0],
+                self.position[1],
+                self.position[2],
+            self.money,
+            self.stats,
+            self.persona,
+            self.print_goals(),
+            self.print_network(),
+        )
+
     #=====================================================================
     #
     #   getter functions
@@ -473,22 +510,28 @@ Network: %s
         '''print_goals(self):
         ---------------------------------
         Prints the goals in an easier to read way, useful for __repr__'''
-        goal_string = ''
+        #Add a space so the { won't get trimmed
+        goal_string = '{ '
         for goal in self.goals:
-            goal_string += '\t%s: %s \n' % (
+            goal_string += '''\t'%s': %s \n,''' % (
                 goal, self.goals[goal]['priority'],
             )
+        #Remove trailing comma and add a }
+        goal_string = goal_string[:-1] + '}'
         return goal_string
     
     def print_network(self):
         '''print_network(self):
         ---------------------------------
         Prints the network in an easier to read way, useful for __repr__'''
-        network_string = ''
+        #Add a space so the { won't get trimmed
+        network_string = '{ '
         for network in self.network:
-            network_string += '\t%s: %s \n' % (
+            network_string += '''\t'%s': %s \n,''' % (
                 network, self.network[network]['value']
             )
+        #Remove trailing comma and add a }
+        network_string = network_string[:-1] + '}'
         return network_string
 
     '''--------------------------------------------------------------------
