@@ -67,7 +67,7 @@ def run_server():
             print 'Created entity'
             
             #Send the message with the entity ID
-            socket.send('Entity ID: %s' % (temp_entity.id))
+            socket.send("({'entity_id': '%s'})" % (temp_entity.id))
         #--------------------------------
         #Get Entity Info
         #--------------------------------
@@ -83,6 +83,30 @@ def run_server():
 
             #Send the entity info
             socket.send('%s' % (temp_entity.get_info_json()) )
+
+        #--------------------------------
+        #Get ALL entities
+        #--------------------------------
+        elif 'get_entities' in msg:
+            #Get all entities
+            entities = Entity.Entity._entities
+
+            print 'Retrieved all %s entities' % (len(entities))
+
+            #Create an array which we'll use to get all the entities and
+            #   stuff in JSON text
+            entities_json = []
+
+            for entity in entities:
+                #Get the current JSON, but remove the first and trailing ( )'s
+                #   Because we'll want to return a list, not an individual
+                #   object
+                entities_json.append( entities[entity].get_info_json()[1:-1] )
+
+            entities_json = ','.join(entities_json)
+    
+            #Send the entity info
+            socket.send('([%s])' % (entities_json) )
 
 
 
