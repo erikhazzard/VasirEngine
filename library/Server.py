@@ -108,6 +108,23 @@ def run_server():
             #Send the entity info
             socket.send('([%s])' % (entities_json) )
 
+        #--------------------------------
+        #Set target entity
+        #--------------------------------
+        elif 'set_target' in msg:
+            #Get all entities
+            entities = Entity.Entity._entities
+
+            entity_ids = msg.replace('set_target_', '').split(',')
+            Entity.Entity._entities[entity_ids[0]].set_target(
+                target=entity_ids[1])
+
+            print 'Setting target'
+    
+            #Send the entity info
+            socket.send('("%s set target to %s")' % (
+                entity_ids[0], entity_ids[1]))
+
 
 
 """=============================================================================

@@ -1079,6 +1079,8 @@ Network: %s
         Set's this entity's target to the passed in target. Can be
         a list of targets, an individual target, or None (will clear target).
         Can also be set as self.'''
+        if isinstance(target, str):
+            target = Entity._entities[target]
         self.target = target
 
     def get_target(self):
