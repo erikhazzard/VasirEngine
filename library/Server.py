@@ -125,6 +125,25 @@ def run_server():
             socket.send('("%s set target to %s")' % (
                 entity_ids[0], entity_ids[1]))
 
+        #--------------------------------
+        #converse
+        #--------------------------------
+        elif 'converse' in msg:
+            #Get all entities
+            entities = Entity.Entity._entities
+
+            entity_id = msg.replace('converse_', '')
+            print Entity.Entity._entities[entity_id].target
+            if Entity.Entity._entities[entity_id].target is not None:
+                Entity.Entity._entities[entity_id].perform_action(
+                    'converse') 
+
+                print 'Conversation performed'
+    
+                #Send the entity info
+                socket.send('("conversation action performed")')
+            else:
+                socket.send('{"error": "No target provided"}')
 
 
 """=============================================================================
