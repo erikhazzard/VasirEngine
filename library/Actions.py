@@ -84,9 +84,15 @@ def move(
     #   more than once, we'll just call the entitiy's move function until
     #   we've moved it to the desired position
     
+    #TODO: This should be set on some sort of timer, shouldn't
+    #   teleport to the location
+    new_position = target
+
+    ''' OLD WAY (Grid based movement)
+    
     #Get current entity position
     cur_position = source.position
-    
+
     #The target is the desired position
     #TODO: Make sure entity doesn't teleport
     #TODO: Make sure target is legit coord pair (ex [2,4,0])
@@ -109,6 +115,7 @@ def move(
     #   If not, we need to move it again
     if cur_position != target:
         source.perform_action('move', target)
+    '''
 
     effects = {
         #Move this entity to the new_position
@@ -194,9 +201,17 @@ def converse(
     if dist > 3.0:
         #If distance is greater then 3, we need to move the entity
         #   closer
-        if dist < 20.0: 
+        if dist < 50.0: 
             #Just make sure entity is TOO far away
-            source.perform_action('move', target)
+            #TODO: pass in new position that isn't exactly on top of
+            #   the exisiting entity
+            source.perform_action(
+                'move', 
+                (target.position[0] + 2,
+                target.position[1] + 2,
+                target.position[2],
+                ),
+            )
         else:
             print 'Entities out of range'
             return False

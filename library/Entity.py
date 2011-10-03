@@ -399,8 +399,8 @@ class Entity(object):
         #   TODO: Entities can't be directly on top of each other (occupy same
         #   same space)
         self.position = [
-            random.randint(0,10),
-            random.randint(0,10),
+            random.randint(0,20),
+            random.randint(0,20),
             0]
 
         #=====================================================================
@@ -492,8 +492,8 @@ Network: %s
             target,
             self.gender[1],
             self.position[0],
-                self.position[1],
-                self.position[2],
+            self.position[1],
+            self.position[2],
             self.money,
             self.stats,
             self.persona,
