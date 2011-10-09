@@ -36,6 +36,9 @@ def run_server():
     print 'Server Started!'
     print '-' * 42
 
+    #-------------------------------------------------------------------------
+    #REPLY
+    #-------------------------------------------------------------------------
     #Get context for ZeroMQ
     context = zmq.Context()
     #Get a socket. Use the REP method of zmq
