@@ -23,8 +23,8 @@ import Goals
 import Action
 
 #Third party
-import cairo_plot_new.cairoplot as CairoPlot
-import cairo
+#import cairo_plot_new.cairoplot as CairoPlot
+#import cairo
 """=============================================================================
 
 CLASS DEFINITIONS
