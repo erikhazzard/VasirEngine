@@ -98,6 +98,8 @@ def run_server():
             #Reset timer
             game_loop_counter = 0
 
+            '''This works, but we'll comment it out for now
+
             #Randomly move entities
             if len(Entity.Entity._entities) > 0:
                 for entity in Entity.Entity._entities:
@@ -110,7 +112,8 @@ def run_server():
                             0,
                         ]
                     )
-
+            '''
+            
         #-------------------------------------------------------------------------
         #
         #BROADCAST socket
@@ -119,7 +122,7 @@ def run_server():
         #-------------------------------------------------------------------------
         if socket_pub in socks and socks[socket_pub] == zmq.POLLOUT:
             #Only send messages at specific intervals
-            if broad_cast_message_timer >= 10000:
+            if broad_cast_message_timer >= 150000:
                 #Reset timer
                 broad_cast_message_timer = 0
 
