@@ -184,12 +184,16 @@ def run_server():
                 #   the message with 'get_info_' replaced with '' so it would only
                 #   contain the entity ID
                 entity_id = msg.replace('get_info_', '')
-                temp_entity = Entity.Entity._entities[entity_id]
+                try:
+                    temp_entity = Entity.Entity._entities[entity_id]
 
-                print 'Got entity info: %s' % (entity_id)
+                    print 'Got entity info: %s' % (entity_id)
 
-                #Send the entity info
-                socket.send('%s' % (temp_entity.get_info_json()) )
+                    #Send the entity info
+                    socket.send('%s' % (temp_entity.get_info_json()) )
+                except KeyError:
+                    print 'Invalid entity passed in'
+                    socket.send('{}')
 
             #--------------------------------
             #Get ALL entities
