@@ -4,6 +4,9 @@ This is an AI / Story generation engine
 
 Dependancies (Required)
 =========================================
+-Specified in requirements.txt
+
+pip install -r server/requirements.txt
 
 Dependancies (Optional)
 =========================================
