@@ -21,7 +21,10 @@ import Entity
 #----------------------------------------
 #Third Party Imports
 #----------------------------------------
-#import zmq
+#Note: ZeroMQ is used to receive messages from Django for requests to modify
+#   game state, redis is used to put game state updates to node (via
+#   publish / subscribe)
+import zmq
 import redis
 
 
@@ -39,6 +42,12 @@ def run_server():
 
     print 'Server Started!'
     print '-' * 42
+    #-------------------------------------------------------------------------
+    #Redis
+    #-------------------------------------------------------------------------
+    client = redis.StrictRedis(
+        host='localhost',
+    )
 
     #-------------------------------------------------------------------------
     #REPLY
@@ -95,7 +104,7 @@ def run_server():
         #
         #Execute the game loop
         #-------------------------------------------------------------------------
-        if game_loop_counter > 10000:
+        if game_loop_counter > 10:
             #Reset timer
             game_loop_counter = 0
 
@@ -117,33 +126,30 @@ def run_server():
             
         #-------------------------------------------------------------------------
         #
-        #BROADCAST socket
-        #
-        #Broadcasts the current game state at certain intervals
+        #Publish key updates to redis
+        #   Publish latest game state
         #-------------------------------------------------------------------------
-        if socket_pub in socks and socks[socket_pub] == zmq.POLLOUT:
-            #Only send messages at specific intervals
-            if broad_cast_message_timer >= 150000:
-                #Reset timer
-                broad_cast_message_timer = 0
+             
+        #Get all entities
+        entities = Entity.Entity._entities
 
-                #Get all entities
-                entities = Entity.Entity._entities
+        #Create an array which we'll use to get all the entities and
+        #   stuff in JSON text
+        entities_json = []
 
-                #Create an array which we'll use to get all the entities and
-                #   stuff in JSON text
-                entities_json = []
+        for entity in entities:
+            #Get the current JSON, but remove the first and trailing ( )'s
+            #   Because we'll want to return a list, not an individual
+            #   object
+            entities_json.append( entities[entity].get_info_json()[1:-1] )
 
-                for entity in entities:
-                    #Get the current JSON, but remove the first and trailing ( )'s
-                    #   Because we'll want to return a list, not an individual
-                    #   object
-                    entities_json.append( entities[entity].get_info_json()[1:-1] )
+        entities_json = ','.join(entities_json)
 
-                entities_json = ','.join(entities_json)
-        
-                #Send the entity info
-                socket_pub.send('([%s])' % (entities_json) )
+        #Send the entity info
+        client.publish(
+            'game_state:world',
+            '([%s])' % (entities_json),
+        )
 
         #-------------------------------------------------------------------------
         #
