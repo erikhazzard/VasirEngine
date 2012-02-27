@@ -104,25 +104,33 @@ def run_server():
         #
         #Execute the game loop
         #-------------------------------------------------------------------------
-        if game_loop_counter > 10:
+        if game_loop_counter > 500:
             #Reset timer
             game_loop_counter = 0
 
-            '''This works, but we'll comment it out for now
+            '''Move entities
 
+            '''
             #Randomly move entities
             if len(Entity.Entity._entities) > 0:
                 for entity in Entity.Entity._entities:
                     cur_entity = Entity.Entity._entities[entity]
+                    #set x and y 
+                    move_x = cur_entity.position[0] + random.randint(-1,1)
+                    if move_x < 0:
+                        move_x = move_x * -1
+                    move_y = cur_entity.position[0] + random.randint(-1,1)
+                    if move_y < 0:
+                        move_y = move_y * -1
+
                     cur_entity.perform_action(
                         action='move',
                         target=[
-                            cur_entity.position[0] + random.randint(-1,1),
-                            cur_entity.position[0] + random.randint(-1,1),
+                            move_x,
+                            move_y,
                             0,
                         ]
                     )
-            '''
             
         #-------------------------------------------------------------------------
         #

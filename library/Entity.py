@@ -14,7 +14,6 @@ IMPORTS
 import datetime
 import math
 import random 
-
 #Other imports
 import Race
 import Goals
@@ -1114,8 +1113,9 @@ Network: %s
         return Action.Action._create_action(action_key, self, target)
 
     def perform_action(self, action=None,
-        target=None):
-        '''perform_action(self, action, target)
+        target=None,
+        log=True):
+        '''perform_action(self, action, target, log)
         ----------------------------------------------
         Takes in an action (could be either an Action object or
             a key to use to grab an object based on the _ACTIONS
@@ -1137,9 +1137,11 @@ Network: %s
         if not isinstance(action, list):
             if isinstance(action, Action.Action):
                 action.perform()
-                print 'Performed %s' % (action)
+                if log:
+                    print 'Performed %s' % (action)
             else:
-                print 'Failed to perform action'
+                if log:
+                    print 'Failed to perform action'
 
         else:
             for i in range(len(action)):
