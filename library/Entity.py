@@ -20,10 +20,15 @@ import Goals
 
 #Actions Entity will inherit / can perform 
 import Action
+import names_list
 
 #Third party
 #import cairo_plot_new.cairoplot as CairoPlot
 #import cairo
+
+def log_message(message='',show_log=True):
+    if show_log:
+        print message 
 """=============================================================================
 
 CLASS DEFINITIONS
@@ -850,10 +855,7 @@ Network: %s
         '''generate_name(self)
         ---------------------------------
         This method randomly generates a name for the entity'''
-        name = [random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ') for i in \
-            range(random.randint(2,18))]
-        name = ''.join(name)
-        name = name[0] + name[1:].lower()
+        name = names_list.names[random.randint(0, len(names_list.names) - 1)]
         return name
 
     #=====================================================================
@@ -1114,9 +1116,8 @@ Network: %s
 
     def perform_action(self, action=None,
         target=None,
-        log=True):
-        '''perform_action(self, action, target, log)
-        ----------------------------------------------
+        show_log=True):
+        '''perform_action(self, action, target, log) ----------------------------------------------
         Takes in an action (could be either an Action object or
             a key to use to grab an object based on the _ACTIONS
             dict) and a target (can be either an entity object or
@@ -1137,11 +1138,15 @@ Network: %s
         if not isinstance(action, list):
             if isinstance(action, Action.Action):
                 action.perform()
-                if log:
-                    print 'Performed %s' % (action)
+                log_message(
+                    message='Performed %s' % (action),
+                    show_log=show_log,
+                )
             else:
-                if log:
-                    print 'Failed to perform action'
+                log_message(
+                    message='Failed to perform action',
+                    show_log=show_log,
+                )
 
         else:
             for i in range(len(action)):
