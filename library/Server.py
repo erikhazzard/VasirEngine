@@ -110,7 +110,6 @@ def run_server():
 
             '''Move entities
 
-            '''
             #Randomly move entities
             if len(Entity.Entity._entities) > 0:
                 for entity in Entity.Entity._entities:
@@ -131,6 +130,7 @@ def run_server():
                             0,
                         ]
                     )
+            '''
             
         #-------------------------------------------------------------------------
         #
@@ -284,7 +284,6 @@ def run_server():
                 entities = Entity.Entity._entities
 
                 entity_id = msg.replace('converse_', '')
-                print Entity.Entity._entities[entity_id].target
                 if Entity.Entity._entities[entity_id].target is not None:
                     Entity.Entity._entities[entity_id].perform_action(
                         'converse') 

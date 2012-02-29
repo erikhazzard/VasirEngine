@@ -20,7 +20,7 @@ import Goals
 
 #Actions Entity will inherit / can perform 
 import Action
-import names_list
+import data.names_list
 
 #Third party
 #import cairo_plot_new.cairoplot as CairoPlot
@@ -855,7 +855,8 @@ Network: %s
         '''generate_name(self)
         ---------------------------------
         This method randomly generates a name for the entity'''
-        name = names_list.names[random.randint(0, len(names_list.names) - 1)]
+        name = data.names_list.names[random.randint(0, 
+            len(data.names_list.names) - 1)]
         return name
 
     #=====================================================================
