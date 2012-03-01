@@ -11,6 +11,7 @@ IMPORTS
 
 ============================================================================="""
 import time
+import threading
 import random
 
 #----------------------------------------
@@ -33,110 +34,83 @@ import redis
 FUNCTIONS
 
 ============================================================================="""
-def run_server():
-    '''run_server:
+class Server(threading.Thread): 
+    '''Server:
     --------------
-    Starts up a basic server that will listen for messages (sent from django)
-    using ZeroMQ.  When receiving messages, certain things will happen, allowing
-    clients to interact with the engine'''
+    This extends the Thread class so we can run the game loop in a non
+    blocking manner.  The run() method is the primary method - it runs the game
+    loop and uses zeromq polling to listen / send messages (to Django in this
+    case - the client sends and gets messages through django)
+    '''
+    def __init__(self):
+        '''When this class is instaniated, we'll set up the redis client,
+        ZeroMQ, and any other pre-loop configurations we need to do'''
+        #-----------------------------------------------------------------------
+        #Redis
+        #-----------------------------------------------------------------------
+        self.client = redis.StrictRedis(
+            host='localhost',
+        )
 
-    print 'Server Started!'
-    print '-' * 42
-    #-------------------------------------------------------------------------
-    #Redis
-    #-------------------------------------------------------------------------
-    client = redis.StrictRedis(
-        host='localhost',
-    )
+        #-----------------------------------------------------------------------
+        #REPLY
+        #-----------------------------------------------------------------------
+        #Get context for ZeroMQ
+        self.context = zmq.Context()
+        #Get a socket. Use the REP method of zmq
+        self.socket = self.context.socket(zmq.REP)
+        #Bind the socket to a port
+        self.socket.bind('tcp://127.0.0.1:5000')
 
-    #-------------------------------------------------------------------------
-    #REPLY
-    #-------------------------------------------------------------------------
-    #Get context for ZeroMQ
-    context = zmq.Context()
-    #Get a socket. Use the REP method of zmq
-    socket = context.socket(zmq.REP)
-    #Bind the socket to a port
-    socket.bind('tcp://127.0.0.1:5000')
+        #-----------------------------------------------------------------------
+        #Poller
+        #-----------------------------------------------------------------------
+        self.poller = zmq.Poller()
+        self.poller.register(self.socket, zmq.POLLIN)
 
-    #-------------------------------------------------------------------------
-    #PUBLISH (Broadcast game state on port 5001)
-    #-------------------------------------------------------------------------
-    pub_context = zmq.Context()
-    socket_pub = pub_context.socket(zmq.PUB)
-    socket_pub.bind("tcp://127.0.0.1:5001")
-    
-    #-------------------------------------------------------------------------
-    #Poller
-    #-------------------------------------------------------------------------
-    poller = zmq.Poller()
-    poller.register(socket, zmq.POLLIN)
-    poller.register(socket_pub, zmq.POLLOUT)
 
-    #-------------------------------------------------------------------------
-    #Create a broadcast_message_timer counter to limit broadcast timings
-    #-------------------------------------------------------------------------
-    broad_cast_message_timer = 0
+    def run(self):
+        '''Starts up a basic server that will listen for messages (sent from 
+        django) using ZeroMQ.  When receiving messages, certain things will 
+        happen, allowing clients to interact with the engine.
+        
+        This run function will execute then call itself (after some delay) to
+        continually run'''
 
-    #-------------------------------------------------------------------------
-    #Create a game_loop_counter to limit game loop stuff
-    #-------------------------------------------------------------------------
-    game_loop_counter = 0
+        #Get all available sockets from this object's poller
+        socks = dict(self.poller.poll(1))
 
-    #-------------------------------------------------------------------------
-    #
-    #Game AND ZMQ Server Loop
-    #
-    #-------------------------------------------------------------------------
-    while True:
-        #Get all available sockets from the poller
-        socks = dict(poller.poll(1))
-
-        #-------------------------------------------------------------------------
-        #Increment counters 
-        #-------------------------------------------------------------------------
-        broad_cast_message_timer += 1
-        game_loop_counter += 1
-
-        #-------------------------------------------------------------------------
+        #-----------------------------------------------------------------------
         #
         #Game Loop
         #
-        #Execute the game loop
-        #-------------------------------------------------------------------------
-        if game_loop_counter > 500:
-            #Reset timer
-            game_loop_counter = 0
+        #-----------------------------------------------------------------------
+        #Randomly move entities
+        if len(Entity.Entity._entities) > 0:
+            for entity in Entity.Entity._entities:
+                cur_entity = Entity.Entity._entities[entity]
+                #set x and y 
+                move_x = cur_entity.position[0] + random.randint(-1,1)
+                if move_x < 0:
+                    move_x = move_x * -1
+                move_y = cur_entity.position[0] + random.randint(-1,1)
+                if move_y < 0:
+                    move_y = move_y * -1
 
-            '''Move entities
-
-            #Randomly move entities
-            if len(Entity.Entity._entities) > 0:
-                for entity in Entity.Entity._entities:
-                    cur_entity = Entity.Entity._entities[entity]
-                    #set x and y 
-                    move_x = cur_entity.position[0] + random.randint(-1,1)
-                    if move_x < 0:
-                        move_x = move_x * -1
-                    move_y = cur_entity.position[0] + random.randint(-1,1)
-                    if move_y < 0:
-                        move_y = move_y * -1
-
-                    cur_entity.perform_action(
-                        action='move',
-                        target=[
-                            move_x,
-                            move_y,
-                            0,
-                        ]
-                    )
-            '''
-            
-        #-------------------------------------------------------------------------
+                cur_entity.perform_action(
+                    action='move',
+                    target=[
+                        move_x,
+                        move_y,
+                        0,
+                    ]
+                )
+        #-----------------------------------------------------------------------
         #
         #Publish key updates to redis
         #   Publish latest game state
-        #-------------------------------------------------------------------------
+        #
+        #-----------------------------------------------------------------------
              
         #Get all entities
         entities = Entity.Entity._entities
@@ -154,29 +128,29 @@ def run_server():
         entities_json = ','.join(entities_json)
 
         #Send the entity info
-        client.publish(
+        self.client.publish(
             'game_state:world',
             '([%s])' % (entities_json),
         )
 
-        #-------------------------------------------------------------------------
+        #-----------------------------------------------------------------------
         #
         #REPLY socket
         #
-        #Returns certain states or performs actions to the game based on messages
-        #-------------------------------------------------------------------------
-        if socket in socks and socks[socket] == zmq.POLLIN:
-            msg = socket.recv()
+        #Returns certain states or perform actions to the game based on messages
+        #-----------------------------------------------------------------------
+        if self.socket in socks and socks[self.socket] == zmq.POLLIN:
+            msg = self.socket.recv()
             #When the socket receives a message, get it
             #msg = socket.recv()
             #Print the message
             print 'Received Message: %s' % (msg)
 
-            #---------------------------------------------------------------------
+            #-------------------------------------------------------------------
             #
             #Perform actions based on message
             #
-            #---------------------------------------------------------------------  
+            #------------------------------------------------------------------- 
             #--------------------------------
             #Create Entity
             #--------------------------------
@@ -189,15 +163,15 @@ def run_server():
                 print 'Created entity'
                 
                 #Send the message with the entity ID
-                socket.send("({'entity_id': '%s'})" % (temp_entity.id))
+                self.socket.send("({'entity_id': '%s'})" % (temp_entity.id))
             #--------------------------------
             #Get Entity Info
             #--------------------------------
             elif 'get_info_' in msg:
                 #The msg will look like 'get_info_entityXYZ', so grab the entity
                 #   by looking at the Class' _entities dict and the key is just
-                #   the message with 'get_info_' replaced with '' so it would only
-                #   contain the entity ID
+                #   the message with 'get_info_' replaced with '' so it would 
+                # only contain the entity ID
                 entity_id = msg.replace('get_info_', '')
                 try:
                     temp_entity = Entity.Entity._entities[entity_id]
@@ -205,10 +179,10 @@ def run_server():
                     print 'Got entity info: %s' % (entity_id)
 
                     #Send the entity info
-                    socket.send('%s' % (temp_entity.get_info_json()) )
+                    self.socket.send('%s' % (temp_entity.get_info_json()) )
                 except KeyError:
                     print 'Invalid entity passed in'
-                    socket.send('{}')
+                    self.socket.send('{}')
 
             #--------------------------------
             #Get ALL entities
@@ -232,7 +206,7 @@ def run_server():
                 entities_json = ','.join(entities_json)
         
                 #Send the entity info
-                socket.send('([%s])' % (entities_json) )
+                self.socket.send('([%s])' % (entities_json) )
 
             #--------------------------------
             #Get Game State
@@ -257,7 +231,7 @@ def run_server():
                 entities_json = ','.join(entities_json)
         
                 #Send the entity info
-                socket.send('([%s])' % (entities_json) )
+                self.socket.send('([%s])' % (entities_json) )
 
             #--------------------------------
             #Set target entity
@@ -273,7 +247,7 @@ def run_server():
                 print 'Setting target'
         
                 #Send the entity info
-                socket.send('("%s set target to %s")' % (
+                self.socket.send('("%s set target to %s")' % (
                     entity_ids[0], entity_ids[1]))
 
             #--------------------------------
@@ -291,9 +265,19 @@ def run_server():
                     print 'Conversation performed'
         
                     #Send the entity info
-                    socket.send('("conversation action performed")')
+                    self.socket.send('("conversation action performed")')
                 else:
-                    socket.send('{"error": "No target provided"}')
+                    self.socket.send('{"error": "No target provided"}')
+
+        #--------------------------------
+        #Delay execution
+        #--------------------------------
+        time.sleep(.08)
+
+        #--------------------------------
+        #Call itself to it continually executes
+        #--------------------------------
+        self.run()
 
 """=============================================================================
 
@@ -301,4 +285,6 @@ INITIALIZE
 
 ============================================================================="""
 if __name__ == '__main__':
-    run_server()
+    #Create a server object and run it
+    game_server = Server()
+    game_server.run()
