@@ -13,6 +13,7 @@ IMPORTS
 import time
 import threading
 import random
+#Use cPickle to store python data structs in redis
 import cStringIO
 import cPickle
 
@@ -71,9 +72,17 @@ class Server(threading.Thread):
         self.poller.register(self.socket, zmq.POLLIN)
 
         #-----------------------------------------------------------------------
-        #Entities
+        #Game State
         #-----------------------------------------------------------------------
-        self.Entity = Entity.Entity
+        #Contains info about the game state.  This is updated each game loop
+        #   iteration
+        self.game_state = {
+            #Entity is the Entity class, where we can access the list of 
+            #   current entities from (with _entities)
+            'Entity': Entity.Entity,
+
+            'environment': None,
+        }
 
 
     def run(self):
@@ -87,6 +96,7 @@ class Server(threading.Thread):
 
         while True:
             #Get all available sockets from this object's poller
+            #   Used for communication between (web server / client)
             socks = dict(self.poller.poll(1))
 
             #-----------------------------------------------------------------------
@@ -94,22 +104,22 @@ class Server(threading.Thread):
             #Game Loop
             #
             #-----------------------------------------------------------------------
-            if len(self.Entity._entities) < 1:
+            if len(self.game_state['Entity']._entities) < 1:
                 #Get game state from redis (if it exists)
-                if self.client.get('python:game_state:entities') is not None:
+                if self.client.get('engine:game_state:entities') is not None:
                     #Get value from redis
-                    redis_cache = self.client.get('python:game_state:entities')
+                    redis_cache = self.client.get('engine:game_state:entities')
                     #Turn into a cString
                     entities_string = cStringIO.StringIO(redis_cache)
-                    #Load the entities with cPickle
-                    self.Entity._entities = cPickle.load(entities_string)
+                    #Load the game state with cPickle
+                    self.game_state = cPickle.load(entities_string)
 
             #-----------------------------------------------------------------------
             #Randomly move entities
             #-----------------------------------------------------------------------
-            if len(self.Entity._entities) > 0:
-                for entity in self.Entity._entities:
-                    cur_entity = self.Entity._entities[entity]
+            if len(self.game_state['Entity']._entities) > 0:
+                for entity in self.game_state['Entity']._entities:
+                    cur_entity = self.game_state['Entity']._entities[entity]
                     #set x and y 
                     move_x = cur_entity.position[0] + random.randint(-1,1)
                     if move_x < 0:
@@ -139,18 +149,18 @@ class Server(threading.Thread):
             #   stuff in JSON text
             entities_json = []
 
-            for entity in self.Entity._entities:
+            for entity in self.game_state['Entity']._entities:
                 #Get the current JSON, but remove the first and trailing ( )'s
                 #   Because we'll want to return a list, not an individual
                 #   object
-                entities_json.append(self.Entity._entities[entity].get_info_json()[1:-1])
+                entities_json.append(self.game_state['Entity']._entities[entity].get_info_json()[1:-1])
 
             entities_json = ','.join(entities_json)
 
             #Send the entity info
             self.client.publish(
-                'game_state:world',
-                '([%s])' % (entities_json),
+                'engine:game_state',
+                '({game_state: { entities: [%s] } })' % (entities_json),
             )
 
             #-----------------------------------------------------------------------
@@ -178,7 +188,7 @@ class Server(threading.Thread):
                     #Create a new entity and return its ID (We don't need to
                     #   save the context or reference to it because it's handled
                     #   through the class for us)
-                    temp_entity = Entity.Entity()
+                    temp_entity = self.game_state['Entity']()
 
                     print 'Created entity'
                     
@@ -194,7 +204,7 @@ class Server(threading.Thread):
                     # only contain the entity ID
                     entity_id = msg.replace('get_info_', '')
                     try:
-                        temp_entity = self.Entity._entities[entity_id]
+                        temp_entity = self.game_state['Entity']._entities[entity_id]
 
                         print 'Got entity info: %s' % (entity_id)
 
@@ -209,17 +219,17 @@ class Server(threading.Thread):
                 #--------------------------------
                 elif 'get_entities' in msg:
                     #Get all entities
-                    print 'Retrieved all %s entities' % (len(self.Entity._entities))
+                    print 'Retrieved all %s entities' % (len(self.game_state['Entity']._entities))
 
                     #Create an array which we'll use to get all the entities and
                     #   stuff in JSON text
                     entities_json = []
 
-                    for entity in self.Entity._entities:
+                    for entity in self.game_state['Entity']._entities:
                         #Get the current JSON, but remove the first and trailing ( )'s
                         #   Because we'll want to return a list, not an individual
                         #   object
-                        entities_json.append( self.Entity._entities[entity].get_info_json()[1:-1] )
+                        entities_json.append( self.game_state['Entity']._entities[entity].get_info_json()[1:-1] )
 
                     entities_json = ','.join(entities_json)
             
@@ -233,17 +243,17 @@ class Server(threading.Thread):
                     #Get all entities
 
                     if 'suppress_log' not in msg:
-                        print 'Retrieved all %s entities' % (len(self.Entity._entities))
+                        print 'Retrieved all %s entities' % (len(self.game_state['Entity']._entities))
 
                     #Create an array which we'll use to get all the entities and
                     #   stuff in JSON text
                     entities_json = []
 
-                    for entity in self.Entity._entities:
+                    for entity in self.game_state['Entity']._entities:
                         #Get the current JSON, but remove the first and trailing ( )'s
                         #   Because we'll want to return a list, not an individual
                         #   object
-                        entities_json.append( self.Entity._entities[entity].get_info_json()[1:-1] )
+                        entities_json.append( self.game_state['Entity']._entities[entity].get_info_json()[1:-1] )
 
                     entities_json = ','.join(entities_json)
             
@@ -256,7 +266,7 @@ class Server(threading.Thread):
                 elif 'set_target' in msg:
                     #Get all entities
                     entity_ids = msg.replace('set_target_', '').split(',')
-                    self.Entity._entities[entity_ids[0]].set_target(
+                    self.game_state['Entity']._entities[entity_ids[0]].set_target(
                         target=entity_ids[1])
 
                     print 'Setting target'
@@ -270,8 +280,8 @@ class Server(threading.Thread):
                 #--------------------------------
                 elif 'converse' in msg:
                     entity_id = msg.replace('converse_', '')
-                    if self.Entity._entities[entity_id].target is not None:
-                        self.Entity._entities[entity_id].perform_action(
+                    if self.game_state['Entity']._entities[entity_id].target is not None:
+                        self.game_state['Entity']._entities[entity_id].perform_action(
                             'converse') 
 
                         print 'Conversation performed'
@@ -281,11 +291,12 @@ class Server(threading.Thread):
                     else:
                         self.socket.send('{"error": "No target provided"}')
 
-            #-----------------------------------------------------------------------
+            #-------------------------------------------------------------------
             #Dump Entities with CPickle and store / load into redis
-            #-----------------------------------------------------------------------
-            self.client.set('python:game_state:entities', 
-                cPickle.dumps(self.Entity._entities))
+            #   This is only for the python game engine, not sent to client
+            #-------------------------------------------------------------------
+            self.client.set('engine:game_state', 
+                cPickle.dumps(self.game_state))
             #--------------------------------
             #Delay execution
             #--------------------------------
