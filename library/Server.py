@@ -13,6 +13,8 @@ IMPORTS
 import time
 import threading
 import random
+import cStringIO
+import cPickle
 
 #----------------------------------------
 #Vasir Engine Imports
@@ -68,216 +70,226 @@ class Server(threading.Thread):
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)
 
+        #-----------------------------------------------------------------------
+        #Entities
+        #-----------------------------------------------------------------------
+        self.Entity = Entity.Entity
+
 
     def run(self):
         '''Starts up a basic server that will listen for messages (sent from 
         django) using ZeroMQ.  When receiving messages, certain things will 
         happen, allowing clients to interact with the engine.
         
-        This run function will execute then call itself (after some delay) to
-        continually run'''
+        Note: If this function calls itself instead of being in a loop,
+            recursion problems crop up.
+            The game loop has a sleep delay at the end'''
 
-        #Get all available sockets from this object's poller
-        socks = dict(self.poller.poll(1))
+        while True:
+            #Get all available sockets from this object's poller
+            socks = dict(self.poller.poll(1))
 
-        #-----------------------------------------------------------------------
-        #
-        #Game Loop
-        #
-        #-----------------------------------------------------------------------
-        #Randomly move entities
-        if len(Entity.Entity._entities) > 0:
-            for entity in Entity.Entity._entities:
-                cur_entity = Entity.Entity._entities[entity]
-                #set x and y 
-                move_x = cur_entity.position[0] + random.randint(-1,1)
-                if move_x < 0:
-                    move_x = move_x * -1
-                move_y = cur_entity.position[0] + random.randint(-1,1)
-                if move_y < 0:
-                    move_y = move_y * -1
-
-                cur_entity.perform_action(
-                    action='move',
-                    target=[
-                        move_x,
-                        move_y,
-                        0,
-                    ]
-                )
-        #-----------------------------------------------------------------------
-        #
-        #Publish key updates to redis
-        #   Publish latest game state
-        #
-        #-----------------------------------------------------------------------
-             
-        #Get all entities
-        entities = Entity.Entity._entities
-
-        #Create an array which we'll use to get all the entities and
-        #   stuff in JSON text
-        entities_json = []
-
-        for entity in entities:
-            #Get the current JSON, but remove the first and trailing ( )'s
-            #   Because we'll want to return a list, not an individual
-            #   object
-            entities_json.append( entities[entity].get_info_json()[1:-1] )
-
-        entities_json = ','.join(entities_json)
-
-        #Send the entity info
-        self.client.publish(
-            'game_state:world',
-            '([%s])' % (entities_json),
-        )
-
-        #-----------------------------------------------------------------------
-        #
-        #REPLY socket
-        #
-        #Returns certain states or perform actions to the game based on messages
-        #-----------------------------------------------------------------------
-        if self.socket in socks and socks[self.socket] == zmq.POLLIN:
-            msg = self.socket.recv()
-            #When the socket receives a message, get it
-            #msg = socket.recv()
-            #Print the message
-            print 'Received Message: %s' % (msg)
-
-            #-------------------------------------------------------------------
+            #-----------------------------------------------------------------------
             #
-            #Perform actions based on message
+            #Game Loop
             #
-            #------------------------------------------------------------------- 
-            #--------------------------------
-            #Create Entity
-            #--------------------------------
-            if msg == 'create_entity':
-                #Create a new entity and return its ID (We don't need to
-                #   save the context or reference to it because it's handled
-                #   through the class for us)
-                temp_entity = Entity.Entity()
+            #-----------------------------------------------------------------------
+            if len(self.Entity._entities) < 1:
+                #Get game state from redis (if it exists)
+                if self.client.get('python:game_state:entities') is not None:
+                    #Get value from redis
+                    redis_cache = self.client.get('python:game_state:entities')
+                    #Turn into a cString
+                    entities_string = cStringIO.StringIO(redis_cache)
+                    #Load the entities with cPickle
+                    self.Entity._entities = cPickle.load(entities_string)
 
-                print 'Created entity'
-                
-                #Send the message with the entity ID
-                self.socket.send("({'entity_id': '%s'})" % (temp_entity.id))
-            #--------------------------------
-            #Get Entity Info
-            #--------------------------------
-            elif 'get_info_' in msg:
-                #The msg will look like 'get_info_entityXYZ', so grab the entity
-                #   by looking at the Class' _entities dict and the key is just
-                #   the message with 'get_info_' replaced with '' so it would 
-                # only contain the entity ID
-                entity_id = msg.replace('get_info_', '')
-                try:
-                    temp_entity = Entity.Entity._entities[entity_id]
+            #-----------------------------------------------------------------------
+            #Randomly move entities
+            #-----------------------------------------------------------------------
+            if len(self.Entity._entities) > 0:
+                for entity in self.Entity._entities:
+                    cur_entity = self.Entity._entities[entity]
+                    #set x and y 
+                    move_x = cur_entity.position[0] + random.randint(-1,1)
+                    if move_x < 0:
+                        move_x = move_x * -1
+                    move_y = cur_entity.position[0] + random.randint(-1,1)
+                    if move_y < 0:
+                        move_y = move_y * -1
 
-                    print 'Got entity info: %s' % (entity_id)
+                    #Move the entity
+                    cur_entity.perform_action(
+                        action='move',
+                        target=[
+                            move_x,
+                            move_y,
+                            0,
+                        ],
+                        show_log=False
+                    )
 
+            #-----------------------------------------------------------------------
+            #
+            #Publish key updates to redis
+            #   Publish latest game state
+            #   Turn into JSON
+            #-----------------------------------------------------------------------
+            #Create an array which we'll use to get all the entities and
+            #   stuff in JSON text
+            entities_json = []
+
+            for entity in self.Entity._entities:
+                #Get the current JSON, but remove the first and trailing ( )'s
+                #   Because we'll want to return a list, not an individual
+                #   object
+                entities_json.append(self.Entity._entities[entity].get_info_json()[1:-1])
+
+            entities_json = ','.join(entities_json)
+
+            #Send the entity info
+            self.client.publish(
+                'game_state:world',
+                '([%s])' % (entities_json),
+            )
+
+            #-----------------------------------------------------------------------
+            #
+            #REPLY socket
+            #
+            #Returns certain states or perform actions to the game based on messages
+            #-----------------------------------------------------------------------
+            if self.socket in socks and socks[self.socket] == zmq.POLLIN:
+                msg = self.socket.recv()
+                #When the socket receives a message, get it
+                #msg = socket.recv()
+                #Print the message
+                print 'Received Message: %s' % (msg)
+
+                #-------------------------------------------------------------------
+                #
+                #Perform actions based on message
+                #
+                #-------------------------------------------------------------------
+                #--------------------------------
+                #Create Entity
+                #--------------------------------
+                if msg == 'create_entity':
+                    #Create a new entity and return its ID (We don't need to
+                    #   save the context or reference to it because it's handled
+                    #   through the class for us)
+                    temp_entity = Entity.Entity()
+
+                    print 'Created entity'
+                    
+                    #Send the message with the entity ID
+                    self.socket.send("({'entity_id': '%s'})" % (temp_entity.id))
+                #--------------------------------
+                #Get Entity Info
+                #--------------------------------
+                elif 'get_info_' in msg:
+                    #The msg will look like 'get_info_entityXYZ', so grab the entity
+                    #   by looking at the Class' _entities dict and the key is just
+                    #   the message with 'get_info_' replaced with '' so it would 
+                    # only contain the entity ID
+                    entity_id = msg.replace('get_info_', '')
+                    try:
+                        temp_entity = self.Entity._entities[entity_id]
+
+                        print 'Got entity info: %s' % (entity_id)
+
+                        #Send the entity info
+                        self.socket.send('%s' % (temp_entity.get_info_json()) )
+                    except KeyError:
+                        print 'Invalid entity passed in'
+                        self.socket.send('{}')
+
+                #--------------------------------
+                #Get ALL entities
+                #--------------------------------
+                elif 'get_entities' in msg:
+                    #Get all entities
+                    print 'Retrieved all %s entities' % (len(self.Entity._entities))
+
+                    #Create an array which we'll use to get all the entities and
+                    #   stuff in JSON text
+                    entities_json = []
+
+                    for entity in self.Entity._entities:
+                        #Get the current JSON, but remove the first and trailing ( )'s
+                        #   Because we'll want to return a list, not an individual
+                        #   object
+                        entities_json.append( self.Entity._entities[entity].get_info_json()[1:-1] )
+
+                    entities_json = ','.join(entities_json)
+            
                     #Send the entity info
-                    self.socket.send('%s' % (temp_entity.get_info_json()) )
-                except KeyError:
-                    print 'Invalid entity passed in'
-                    self.socket.send('{}')
+                    self.socket.send('([%s])' % (entities_json) )
 
-            #--------------------------------
-            #Get ALL entities
-            #--------------------------------
-            elif 'get_entities' in msg:
-                #Get all entities
-                entities = Entity.Entity._entities
+                #--------------------------------
+                #Get Game State
+                #--------------------------------
+                elif 'get_game_state' in msg:
+                    #Get all entities
 
-                print 'Retrieved all %s entities' % (len(entities))
+                    if 'suppress_log' not in msg:
+                        print 'Retrieved all %s entities' % (len(self.Entity._entities))
 
-                #Create an array which we'll use to get all the entities and
-                #   stuff in JSON text
-                entities_json = []
+                    #Create an array which we'll use to get all the entities and
+                    #   stuff in JSON text
+                    entities_json = []
 
-                for entity in entities:
-                    #Get the current JSON, but remove the first and trailing ( )'s
-                    #   Because we'll want to return a list, not an individual
-                    #   object
-                    entities_json.append( entities[entity].get_info_json()[1:-1] )
+                    for entity in self.Entity._entities:
+                        #Get the current JSON, but remove the first and trailing ( )'s
+                        #   Because we'll want to return a list, not an individual
+                        #   object
+                        entities_json.append( self.Entity._entities[entity].get_info_json()[1:-1] )
 
-                entities_json = ','.join(entities_json)
-        
-                #Send the entity info
-                self.socket.send('([%s])' % (entities_json) )
-
-            #--------------------------------
-            #Get Game State
-            #--------------------------------
-            elif 'get_game_state' in msg:
-                #Get all entities
-                entities = Entity.Entity._entities
-
-                if 'suppress_log' not in msg:
-                    print 'Retrieved all %s entities' % (len(entities))
-
-                #Create an array which we'll use to get all the entities and
-                #   stuff in JSON text
-                entities_json = []
-
-                for entity in entities:
-                    #Get the current JSON, but remove the first and trailing ( )'s
-                    #   Because we'll want to return a list, not an individual
-                    #   object
-                    entities_json.append( entities[entity].get_info_json()[1:-1] )
-
-                entities_json = ','.join(entities_json)
-        
-                #Send the entity info
-                self.socket.send('([%s])' % (entities_json) )
-
-            #--------------------------------
-            #Set target entity
-            #--------------------------------
-            elif 'set_target' in msg:
-                #Get all entities
-                entities = Entity.Entity._entities
-
-                entity_ids = msg.replace('set_target_', '').split(',')
-                Entity.Entity._entities[entity_ids[0]].set_target(
-                    target=entity_ids[1])
-
-                print 'Setting target'
-        
-                #Send the entity info
-                self.socket.send('("%s set target to %s")' % (
-                    entity_ids[0], entity_ids[1]))
-
-            #--------------------------------
-            #converse
-            #--------------------------------
-            elif 'converse' in msg:
-                #Get all entities
-                entities = Entity.Entity._entities
-
-                entity_id = msg.replace('converse_', '')
-                if Entity.Entity._entities[entity_id].target is not None:
-                    Entity.Entity._entities[entity_id].perform_action(
-                        'converse') 
-
-                    print 'Conversation performed'
-        
+                    entities_json = ','.join(entities_json)
+            
                     #Send the entity info
-                    self.socket.send('("conversation action performed")')
-                else:
-                    self.socket.send('{"error": "No target provided"}')
+                    self.socket.send('([%s])' % (entities_json) )
 
-        #--------------------------------
-        #Delay execution
-        #--------------------------------
-        time.sleep(.08)
+                #--------------------------------
+                #Set target entity
+                #--------------------------------
+                elif 'set_target' in msg:
+                    #Get all entities
+                    entity_ids = msg.replace('set_target_', '').split(',')
+                    self.Entity._entities[entity_ids[0]].set_target(
+                        target=entity_ids[1])
 
-        #--------------------------------
-        #Call itself to it continually executes
-        #--------------------------------
-        self.run()
+                    print 'Setting target'
+            
+                    #Send the entity info
+                    self.socket.send('("%s set target to %s")' % (
+                        entity_ids[0], entity_ids[1]))
+
+                #--------------------------------
+                #converse
+                #--------------------------------
+                elif 'converse' in msg:
+                    entity_id = msg.replace('converse_', '')
+                    if self.Entity._entities[entity_id].target is not None:
+                        self.Entity._entities[entity_id].perform_action(
+                            'converse') 
+
+                        print 'Conversation performed'
+            
+                        #Send the entity info
+                        self.socket.send('("conversation action performed")')
+                    else:
+                        self.socket.send('{"error": "No target provided"}')
+
+            #-----------------------------------------------------------------------
+            #Dump Entities with CPickle and store / load into redis
+            #-----------------------------------------------------------------------
+            self.client.set('python:game_state:entities', 
+                cPickle.dumps(self.Entity._entities))
+            #--------------------------------
+            #Delay execution
+            #--------------------------------
+            time.sleep(.05)
 
 """=============================================================================
 
