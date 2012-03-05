@@ -336,6 +336,22 @@ class Entity(object):
         if randomize_persona is True:
             self.randomize_persona()
 
+        '''------------------------------
+            Set up function calls
+            -----------------------------'''
+        #Randomize stats values? If nothing is passed is, then we
+        #   assume we DO want ranomized stats values
+        try:
+            #randomize_stats can be either True or False
+            randomize_stats = kwargs['randomize_stats']
+        except KeyError:
+            randomize_stats = True
+        
+        #If randomize_stats is true, call the class method which
+        #   will randomize stats values
+        if randomize_stats is True:
+            self.randomize_stats()
+
         #=====================================================================
         #   Memory (actions that have occured to entity)
         #=====================================================================
@@ -858,6 +874,19 @@ Network: %s
         name = data.names_list.names[random.randint(0, 
             len(data.names_list.names) - 1)]
         return name
+
+    #=====================================================================
+    #
+    #   randomize_stats
+    #
+    #=====================================================================
+    def randomize_stats(self):
+        '''randomize_stats(self)
+        ---------------------------------
+        This method randomly generates stats for entity'''
+        for stat in self.stats:
+            self.stats[stat] = random.randint(0, 100)
+
 
     #=====================================================================
     #
