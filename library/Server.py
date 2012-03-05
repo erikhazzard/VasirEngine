@@ -11,6 +11,7 @@ IMPORTS
 
 ============================================================================="""
 import time
+import sys
 import threading
 import random
 #Use cPickle to store python data structs in redis
@@ -48,6 +49,7 @@ class Server(threading.Thread):
     def __init__(self):
         '''When this class is instaniated, we'll set up the redis client,
         ZeroMQ, and any other pre-loop configurations we need to do'''
+        super(Server, self).__init__()
         #-----------------------------------------------------------------------
         #Redis
         #-----------------------------------------------------------------------
@@ -84,7 +86,16 @@ class Server(threading.Thread):
             'environment': None,
         }
 
+        #-----------------------------------------------------------------------
+        #Game Loop controller - determines if thread is running
+        #-----------------------------------------------------------------------
+        self.thread_alive = True
 
+    
+
+    #------------------------------------
+    #Running thread
+    #------------------------------------
     def run(self):
         '''Starts up a basic server that will listen for messages (sent from 
         django) using ZeroMQ.  When receiving messages, certain things will 
@@ -94,7 +105,7 @@ class Server(threading.Thread):
             recursion problems crop up.
             The game loop has a sleep delay at the end'''
 
-        while True:
+        while self.thread_alive is True:
             #Get all available sockets from this object's poller
             #   Used for communication between (web server / client)
             socks = dict(self.poller.poll(1))
@@ -117,27 +128,30 @@ class Server(threading.Thread):
             #-----------------------------------------------------------------------
             #Randomly move entities
             #-----------------------------------------------------------------------
-            if len(self.game_state['Entity']._entities) > 0:
-                for entity in self.game_state['Entity']._entities:
-                    cur_entity = self.game_state['Entity']._entities[entity]
-                    #set x and y 
-                    move_x = cur_entity.position[0] + random.randint(-1,1)
-                    if move_x < 0:
-                        move_x = move_x * -1
-                    move_y = cur_entity.position[0] + random.randint(-1,1)
-                    if move_y < 0:
-                        move_y = move_y * -1
 
-                    #Move the entity
-                    cur_entity.perform_action(
-                        action='move',
-                        target=[
-                            move_x,
-                            move_y,
-                            0,
-                        ],
-                        show_log=False
-                    )
+            move = False
+            if move:
+                if len(self.game_state['Entity']._entities) > 0:
+                    for entity in self.game_state['Entity']._entities:
+                        cur_entity = self.game_state['Entity']._entities[entity]
+                        #set x and y 
+                        move_x = cur_entity.position[0] + random.randint(-1,1)
+                        if move_x < 0:
+                            move_x = move_x * -1
+                        move_y = cur_entity.position[0] + random.randint(-1,1)
+                        if move_y < 0:
+                            move_y = move_y * -1
+
+                        #Move the entity
+                        cur_entity.perform_action(
+                            action='move',
+                            target=[
+                                move_x,
+                                move_y,
+                                0,
+                            ],
+                            show_log=False
+                        )
 
             #-----------------------------------------------------------------------
             #
@@ -300,7 +314,7 @@ class Server(threading.Thread):
             #--------------------------------
             #Delay execution
             #--------------------------------
-            time.sleep(.05)
+            time.sleep(.1)
 
 """=============================================================================
 
@@ -310,4 +324,5 @@ INITIALIZE
 if __name__ == '__main__':
     #Create a server object and run it
     game_server = Server()
+    #TODO: start or run?
     game_server.run()
