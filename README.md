@@ -1,3 +1,6 @@
+DEPRECATED - this was attempt 1 at a story generation engine
+
+
 VasirEngine 
 =========================================
 This is an AI / Story generation engine
