@@ -1,4 +1,4 @@
-DEPRECATED - this was attempt 1 at a story generation engine
+DEPRECATED - this was attempt 1 at a story generation engine and has not been updated since 2012ish
 
 
 VasirEngine 
